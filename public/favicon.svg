@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" aria-label="Talkloop logo">
+  <path d="M16 4C9.373 4 4 8.925 4 15c0 3.36 1.657 6.37 4.27 8.41-.14 1.53-.66 2.94-1.52 4.09a.6.6 0 0 0 .62.93c2.16-.5 4.03-1.55 5.44-2.62A15.6 15.6 0 0 0 16 26c6.627 0 12-4.925 12-11S22.627 4 16 4Z" fill="#E8623D"/>
+  <circle cx="11.5" cy="15" r="1.6" fill="#FBF7F2"/>
+  <circle cx="16" cy="15" r="1.6" fill="#FBF7F2"/>
+  <circle cx="20.5" cy="15" r="1.6" fill="#FBF7F2"/>
+</svg>
