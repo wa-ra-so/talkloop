@@ -9,6 +9,7 @@ import {
   saveCustomCard,
   getAllContent,
   isNew,
+  loadCustomCards,
   type Grade,
 } from './lib/srs';
 import { weeks, type CardContent } from './data/cards';
@@ -26,12 +27,34 @@ type QueueItem =
   | { type: 'recall'; card: CardContent }
   | { type: 'review'; card: CardContent };
 
-type Screen = 'home' | 'review' | 'done';
+type Screen = 'home' | 'review' | 'done' | 'drillSelect' | 'drill' | 'drillDone';
 let screen: Screen = 'home';
 let queue: QueueItem[] = [];
 let queueIndex = 0;
 let completedCount = 0;
 let showAddModal = false;
+
+// ------------------------------------------------------------------
+// フレーズ反復練習モード（発音練習だけに集中する。SRSの進捗とは無関係で、
+// いつでも好きな週を選んで何度でも練習できる）
+// ------------------------------------------------------------------
+const DRILL_AUTO_REPEATS = 3;
+const DRILL_RATE_KEY = 'eigo-drill-rate';
+let drillGroupLabel = '';
+let drillCards: CardContent[] = [];
+let drillIndex = 0;
+let drillGeneration = 0;
+let drillRepCount = 0;
+let drillRate = Number(safeStorage.getItem(DRILL_RATE_KEY)) || 0.8;
+
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 // 新規カードごとの「その場チェック残り回数」「怪しい判定の再挑戦回数」
 const recallRemaining = new Map<string, number>();
@@ -44,6 +67,9 @@ function render(): void {
   if (screen === 'home') return renderHome();
   if (screen === 'review') return renderReview();
   if (screen === 'done') return renderDone();
+  if (screen === 'drillSelect') return renderDrillSelect();
+  if (screen === 'drill') return renderDrill();
+  if (screen === 'drillDone') return renderDrillDone();
 }
 
 // ------------------------------------------------------------------
@@ -96,6 +122,7 @@ function renderHome() {
         ${dueCount === 0 ? '今日の分は終わりました 🎉' : 'レッスンを始める'}
       </button>
       <button id="add-btn" class="btn-secondary">＋ 自分のフレーズを追加</button>
+      <button id="drill-btn" class="btn-secondary">🔁 フレーズを反復練習する</button>
     </div>
 
     <div class="stat-row">
@@ -140,6 +167,10 @@ function renderHome() {
   });
   document.getElementById('add-btn')?.addEventListener('click', () => {
     showAddModal = true;
+    render();
+  });
+  document.getElementById('drill-btn')?.addEventListener('click', () => {
+    screen = 'drillSelect';
     render();
   });
 }
@@ -430,6 +461,184 @@ function renderDone() {
     </div>
   `;
   document.getElementById('home-btn')?.addEventListener('click', () => {
+    screen = 'home';
+    render();
+  });
+}
+
+// ------------------------------------------------------------------
+// フレーズ反復練習モード（選択→反復再生→完了）
+// ------------------------------------------------------------------
+function drillGroups(): { label: string; cards: CardContent[] }[] {
+  const groups = weeks.map((w) => ({
+    label: `${w.week === 0 ? '基本' : 'Week ' + w.week}：${w.label}`,
+    cards: w.cards,
+  }));
+  const custom = loadCustomCards();
+  if (custom.length > 0) {
+    groups.push({ label: 'マイフレーズ', cards: custom });
+  }
+  return groups;
+}
+
+function startDrill(label: string, cards: CardContent[]): void {
+  drillGroupLabel = label;
+  drillCards = shuffle(cards);
+  drillIndex = 0;
+  screen = 'drill';
+  render();
+}
+
+function renderDrillSelect(): void {
+  const groups = drillGroups();
+  app.innerHTML = `
+    <div class="review-topbar">
+      <button id="exit-btn" class="icon-btn">✕</button>
+      <span style="font-size: var(--text-base); font-weight: 700;">フレーズを反復練習</span>
+      <span></span>
+    </div>
+    <p style="color: var(--color-text-muted); font-size: var(--text-sm); margin: var(--space-2) 0 var(--space-4);">
+      音を聞いて声に出す、発音だけの練習モードです。結果は保存されません。好きな週を選んで何度でもどうぞ。
+    </p>
+    <ul class="week-list" id="drill-group-list">
+      ${groups
+        .map(
+          (g, i) => `<li class="week-item drill-group-item" data-idx="${i}" style="cursor:pointer;">
+            <span>${escapeHtml(g.label)}</span>
+            <span class="badge">${g.cards.length}枚</span>
+          </li>`
+        )
+        .join('')}
+    </ul>
+  `;
+  bindExit();
+  document.querySelectorAll<HTMLLIElement>('.drill-group-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      const idx = Number(el.dataset.idx);
+      const g = groups[idx];
+      if (g.cards.length === 0) return;
+      startDrill(g.label, g.cards);
+    });
+  });
+}
+
+function updateDrillRepDisplay(): void {
+  const el = document.getElementById('drill-rep-counter');
+  if (el) el.textContent = `🔊 ${drillRepCount}/${DRILL_AUTO_REPEATS} 回再生`;
+}
+
+function playDrillSequence(text: string, timesLeft: number, myGen: number): void {
+  if (myGen !== drillGeneration || timesLeft <= 0) return;
+  speak(text, drillRate, () => {
+    if (myGen !== drillGeneration) return;
+    drillRepCount++;
+    updateDrillRepDisplay();
+    if (timesLeft - 1 > 0) {
+      setTimeout(() => playDrillSequence(text, timesLeft - 1, myGen), 650);
+    }
+  });
+}
+
+function renderDrill(): void {
+  const card = drillCards[drillIndex];
+  if (!card) {
+    screen = 'drillDone';
+    return render();
+  }
+  drillGeneration++;
+  const myGen = drillGeneration;
+  drillRepCount = 0;
+
+  app.innerHTML = `
+    <div class="review-topbar">
+      <button id="exit-btn" class="icon-btn">✕</button>
+      <div class="review-progress"><div class="review-progress-fill" style="width:${Math.round((drillIndex / drillCards.length) * 100)}%"></div></div>
+      <span style="font-size: var(--text-xs); color: var(--color-text-muted);">${drillIndex + 1}/${drillCards.length}</span>
+    </div>
+    <div class="review-card drill-card">
+      <span class="topic-chip">${escapeHtml(card.topic)} ・ 反復練習</span>
+      <div class="prompt-text">${escapeHtml(card.prompt_ja)}</div>
+
+      <div class="learn-answer-block">
+        <div class="learn-answer-row">
+          <span class="reveal-answer">${escapeHtml(card.target_en)}</span>
+          ${speakerButton('drill-speak-btn')}
+        </div>
+        ${card.note_ja ? `<div class="learn-tip">${escapeHtml(card.note_ja)}</div>` : ''}
+      </div>
+
+      <div id="drill-rep-counter" style="font-size: var(--text-xs); color: var(--color-text-muted); text-align:center; margin: var(--space-2) 0;">🔊 0/${DRILL_AUTO_REPEATS} 回再生</div>
+
+      <div class="drill-speed-row">
+        <button class="speed-btn ${drillRate <= 0.75 ? 'active' : ''}" data-rate="0.7">ゆっくり</button>
+        <button class="speed-btn ${drillRate > 0.75 ? 'active' : ''}" data-rate="0.9">ふつう</button>
+        <button id="drill-replay-btn" class="speed-btn">🔁 もう一度最初から</button>
+      </div>
+
+      <div class="shadow-instruction">🗣️ 音声に合わせて何度も声に出してみよう</div>
+
+      <div class="drill-nav-row">
+        <button id="drill-prev-btn" class="btn-secondary" ${drillIndex === 0 ? 'disabled style="opacity:.4;"' : ''}>‹ 前へ</button>
+        <button id="drill-next-btn" class="btn-primary">次のフレーズへ ›</button>
+      </div>
+    </div>
+  `;
+
+  bindExit();
+  playDrillSequence(card.target_en, DRILL_AUTO_REPEATS, myGen);
+
+  document.getElementById('drill-speak-btn')?.addEventListener('click', () => {
+    drillGeneration++;
+    speak(card.target_en, drillRate);
+  });
+  document.getElementById('drill-replay-btn')?.addEventListener('click', () => {
+    drillGeneration++;
+    const gen = drillGeneration;
+    drillRepCount = 0;
+    updateDrillRepDisplay();
+    playDrillSequence(card.target_en, DRILL_AUTO_REPEATS, gen);
+  });
+  document.querySelectorAll<HTMLButtonElement>('.speed-btn[data-rate]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      drillRate = Number(btn.dataset.rate);
+      safeStorage.setItem(DRILL_RATE_KEY, String(drillRate));
+      drillGeneration++;
+      const gen = drillGeneration;
+      drillRepCount = 0;
+      updateDrillRepDisplay();
+      render();
+      playDrillSequence(card.target_en, DRILL_AUTO_REPEATS, gen);
+    });
+  });
+  document.getElementById('drill-next-btn')?.addEventListener('click', () => {
+    drillGeneration++;
+    drillIndex++;
+    renderDrill();
+  });
+  document.getElementById('drill-prev-btn')?.addEventListener('click', () => {
+    if (drillIndex === 0) return;
+    drillGeneration++;
+    drillIndex--;
+    renderDrill();
+  });
+}
+
+function renderDrillDone(): void {
+  drillGeneration++;
+  app.innerHTML = `
+    <div class="header">${LOGO_SVG}<div><div class="brand-title">Talkloop</div></div></div>
+    <div class="card-panel done-panel">
+      <div class="done-emoji">🔁</div>
+      <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-2);">${escapeHtml(drillGroupLabel)}　反復練習おつかれさまでした！</h2>
+      <p style="color: var(--color-text-muted); margin-bottom: var(--space-5);">${drillCards.length}枚を何度も声に出して練習しました。発音は繰り返すほど身につきます。</p>
+      <button id="drill-again-btn" class="btn-primary">もう一度練習する</button>
+      <button id="drill-home-btn" class="btn-secondary">ホームに戻る</button>
+    </div>
+  `;
+  document.getElementById('drill-again-btn')?.addEventListener('click', () => {
+    startDrill(drillGroupLabel, drillCards);
+  });
+  document.getElementById('drill-home-btn')?.addEventListener('click', () => {
     screen = 'home';
     render();
   });

@@ -28,13 +28,22 @@ if (supported) {
 
 export const ttsSupported = supported;
 
-export function speak(text: string, rate = 0.85): void {
-  if (!supported || !text) return;
+// onEnd を渡すと、再生が終わった（またはエラーになった）タイミングで一度だけ呼ばれる。
+// 反復練習モードで「再生→少し間を空けてもう一度再生」を連続実行するために使う。
+export function speak(text: string, rate = 0.85, onEnd?: () => void): void {
+  if (!supported || !text) {
+    if (onEnd) setTimeout(onEnd, 300);
+    return;
+  }
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
   utterance.rate = rate; // 初級者向けに、少しゆっくりめ（Pimsleurのはっきりした発話を意識）
   if (!voicesLoaded) cachedVoice = pickVoice();
   if (cachedVoice) utterance.voice = cachedVoice;
+  if (onEnd) {
+    utterance.onend = onEnd;
+    utterance.onerror = onEnd;
+  }
   window.speechSynthesis.speak(utterance);
 }
