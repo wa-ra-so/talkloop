@@ -1,6 +1,7 @@
 import './style.css';
 import {
   getDueQueue,
+  getSessionPlan,
   rate,
   previewIntervals,
   getStats,
@@ -12,18 +13,29 @@ import {
 } from './lib/srs';
 import { weeks, type CardContent } from './data/cards';
 import { safeStorage } from './lib/storage';
+import { speak, ttsSupported } from './lib/tts';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 // ------------------------------------------------------------------
-// 小さなルーター的な状態管理
+// キューの中身: 「学習」→「その場での復習チェック（Pimsleur式・間隔を空けて2回）」
+// → 卒業して初めて「本格的な復習（FSRS・翌日以降）」に入る
 // ------------------------------------------------------------------
+type QueueItem =
+  | { type: 'learn'; card: CardContent }
+  | { type: 'recall'; card: CardContent }
+  | { type: 'review'; card: CardContent };
+
 type Screen = 'home' | 'review' | 'done';
 let screen: Screen = 'home';
-let queue: CardContent[] = [];
+let queue: QueueItem[] = [];
 let queueIndex = 0;
-let sessionTotal = 0;
+let completedCount = 0;
 let showAddModal = false;
+
+// 新規カードごとの「その場チェック残り回数」「怪しい判定の再挑戦回数」
+const recallRemaining = new Map<string, number>();
+const shakyRetries = new Map<string, number>();
 
 function render(): void {
   if (showAddModal) {
@@ -45,8 +57,15 @@ const LOGO_SVG = `
   <circle cx="20.5" cy="15" r="1.6" fill="var(--color-surface)"/>
 </svg>`;
 
+const SPEAKER_ICON = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>`;
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
+}
+
+function speakerButton(id: string): string {
+  if (!ttsSupported) return '';
+  return `<button id="${id}" type="button" class="icon-btn speaker-btn" aria-label="音声を再生">${SPEAKER_ICON}</button>`;
 }
 
 // ------------------------------------------------------------------
@@ -54,8 +73,8 @@ function escapeHtml(s: string): string {
 // ------------------------------------------------------------------
 function renderHome() {
   const stats = getStats();
-  const due = getDueQueue();
-  const dueCount = due.length;
+  const { reviewCards, newCards } = getSessionPlan();
+  const dueCount = getDueQueue().length;
   const pct = stats.total ? Math.round((stats.learned / stats.total) * 100) : 0;
 
   app.innerHTML = `
@@ -68,10 +87,13 @@ function renderHome() {
     </div>
 
     <div class="card-panel">
-      <div style="font-size: var(--text-sm); color: var(--color-text-muted);">今日のレビュー</div>
+      <div style="font-size: var(--text-sm); color: var(--color-text-muted);">今日のレッスン</div>
       <div style="font-family: var(--font-display); font-size: 2.5rem; font-weight: 800; color: var(--color-primary); margin: var(--space-1) 0;">${dueCount}<span style="font-size: var(--text-base); color: var(--color-text-muted); font-weight: 500;"> 枚</span></div>
+      <div style="font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-3);">
+        新しい学習 ${newCards.length}枚・復習 ${reviewCards.length}枚
+      </div>
       <button id="start-btn" class="btn-primary" ${dueCount === 0 ? 'disabled style="opacity:.5;cursor:default;"' : ''}>
-        ${dueCount === 0 ? '今日の分は終わりました 🎉' : 'レビューを始める'}
+        ${dueCount === 0 ? '今日の分は終わりました 🎉' : 'レッスンを始める'}
       </button>
       <button id="add-btn" class="btn-secondary">＋ 自分のフレーズを追加</button>
     </div>
@@ -123,38 +145,210 @@ function renderHome() {
 }
 
 // ------------------------------------------------------------------
-// レビュー画面
+// キューの組み立て（復習カードと新規カードを織り交ぜる）
 // ------------------------------------------------------------------
+function interleaveItems(a: QueueItem[], b: QueueItem[]): QueueItem[] {
+  const result: QueueItem[] = [];
+  let ai = 0;
+  let bi = 0;
+  while (ai < a.length || bi < b.length) {
+    if (ai < a.length) result.push(a[ai++]);
+    if (bi < b.length && ai % 3 === 0) result.push(b[bi++]);
+  }
+  while (bi < b.length) result.push(b[bi++]);
+  return result;
+}
+
+function insertRecallAt(card: CardContent, pos: number) {
+  const clamped = Math.min(Math.max(pos, queueIndex + 1), queue.length);
+  queue.splice(clamped, 0, { type: 'recall', card });
+}
+
 function startReview() {
-  queue = getDueQueue();
-  sessionTotal = queue.length;
+  const { reviewCards, newCards } = getSessionPlan();
+  const reviewItems: QueueItem[] = reviewCards.map((card) => ({ type: 'review', card }));
+  const learnItems: QueueItem[] = newCards.map((card) => ({ type: 'learn', card }));
+  queue = interleaveItems(reviewItems, learnItems);
   queueIndex = 0;
+  completedCount = 0;
+  recallRemaining.clear();
+  shakyRetries.clear();
   screen = 'review';
   render();
 }
 
+// ------------------------------------------------------------------
+// レビュー画面（学習 / その場チェック / 本格復習の3種類を切り替える）
+// ------------------------------------------------------------------
 let revealed = false;
 let currentIntervals: Record<Grade, string> | null = null;
 
 function renderReview(): void {
-  const card = queue[queueIndex];
-  if (!card) {
+  const item = queue[queueIndex];
+  if (!item) {
     screen = 'done';
     return render();
   }
-  const progressPct = Math.round((queueIndex / sessionTotal) * 100);
-  const firstExposure = card.kind === 'grammar' && isNew(card.id) && card.hint_ja;
+  if (item.type === 'learn') return renderLearn(item.card);
+  if (item.type === 'recall') return renderRecallCheck(item.card);
+  return renderFullReview(item.card);
+}
 
-  app.innerHTML = `
+function topBar(): string {
+  const total = Math.max(queue.length, queueIndex + 1);
+  const progressPct = Math.round((queueIndex / total) * 100);
+  return `
     <div class="review-topbar">
       <button id="exit-btn" class="icon-btn">✕</button>
       <div class="review-progress"><div class="review-progress-fill" style="width:${progressPct}%"></div></div>
-      <span style="font-size: var(--text-xs); color: var(--color-text-muted);">${queueIndex + 1}/${sessionTotal}</span>
-    </div>
+      <span style="font-size: var(--text-xs); color: var(--color-text-muted);">${queueIndex + 1}/${total}</span>
+    </div>`;
+}
 
+function bindExit(): void {
+  document.getElementById('exit-btn')?.addEventListener('click', () => {
+    screen = 'home';
+    render();
+  });
+}
+
+// --- ステージ1: 学習（新しいフレーズ・パターンをまず直接教える） ---
+function renderLearn(card: CardContent): void {
+  app.innerHTML = `
+    ${topBar()}
+    <div class="review-card learn-card">
+      <span class="topic-chip">${escapeHtml(card.topic)} ・ 新しい学習</span>
+      <div class="prompt-text">${escapeHtml(card.prompt_ja)}</div>
+
+      <div class="learn-answer-block">
+        <div class="learn-answer-row">
+          <span class="reveal-answer">${escapeHtml(card.target_en)}</span>
+          ${speakerButton('learn-speak-btn')}
+        </div>
+        ${card.cloze ? `<div class="cloze-text">${escapeHtml(card.cloze)}</div>` : ''}
+        ${card.hint_ja ? `<div class="learn-tip">💡 ${escapeHtml(card.hint_ja)}</div>` : ''}
+        ${card.note_ja ? `<div class="reveal-note">${escapeHtml(card.note_ja)}</div>` : ''}
+      </div>
+
+      <div class="shadow-instruction">🔊 音声を聞いて、声に出して2〜3回まねして言ってみよう</div>
+
+      <button id="learn-next-btn" class="btn-primary">言えるようになった → 次へ</button>
+    </div>
+  `;
+
+  document.getElementById('learn-speak-btn')?.addEventListener('click', () => speak(card.target_en));
+  document.getElementById('learn-next-btn')?.addEventListener('click', () => onLearnComplete(card));
+  bindExit();
+
+  // 自動で一度お手本の音声を再生する（Pimsleur式：まず耳で聞く）
+  if (ttsSupported) speak(card.target_en);
+}
+
+function onLearnComplete(card: CardContent): void {
+  recallRemaining.set(card.id, 2);
+  insertRecallAt(card, queueIndex + 3);
+  queueIndex++;
+  completedCount++;
+  renderReview();
+}
+
+// --- ステージ2: その場での復習チェック（間隔を空けて2回・graduated recall） ---
+function renderRecallCheck(card: CardContent): void {
+  app.innerHTML = `
+    ${topBar()}
+    <div class="review-card">
+      <span class="topic-chip">${escapeHtml(card.topic)} ・ 思い出せるか確認</span>
+      <div class="prompt-text">${escapeHtml(card.prompt_ja)}</div>
+      ${card.cloze ? `<div class="cloze-text">${escapeHtml(card.cloze)}</div>` : ''}
+
+      <input id="answer-input" class="answer-input" type="text" placeholder="声に出す、または入力してみよう" autocomplete="off" autocapitalize="off" spellcheck="false" />
+
+      <div class="recall-audio-hint">
+        ${speakerButton('recall-speak-btn')}
+        <span style="font-size: var(--text-xs); color: var(--color-text-muted);">わからなければ音声のヒントを聞いてみよう</span>
+      </div>
+
+      <div id="reveal-area"></div>
+
+      <button id="check-btn" class="btn-primary">こたえを見る</button>
+    </div>
+  `;
+
+  const input = document.getElementById('answer-input') as HTMLInputElement;
+  input.focus();
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      revealRecall(card, input);
+    }
+  });
+  document.getElementById('check-btn')?.addEventListener('click', () => revealRecall(card, input));
+  document.getElementById('recall-speak-btn')?.addEventListener('click', () => speak(card.target_en));
+  bindExit();
+
+  revealed = false;
+}
+
+function revealRecall(card: CardContent, input: HTMLInputElement): void {
+  if (revealed) return;
+  revealed = true;
+  input.disabled = true;
+
+  const revealArea = document.getElementById('reveal-area')!;
+  revealArea.innerHTML = `
+    <div class="reveal-block">
+      <div class="learn-answer-row">
+        <span class="reveal-label">お手本</span>
+        ${speakerButton('reveal-speak-btn')}
+      </div>
+      <span class="reveal-answer">${escapeHtml(card.target_en)}</span>
+      ${card.note_ja ? `<div class="reveal-note">${escapeHtml(card.note_ja)}</div>` : ''}
+    </div>
+    <div class="grade-row grade-row-2">
+      <button id="shaky-btn" class="grade-btn grade-again">まだ怪しい 🔁</button>
+      <button id="instant-btn" class="grade-btn grade-good">すぐ言えた ✅</button>
+    </div>
+  `;
+  document.getElementById('check-btn')?.remove();
+  document.getElementById('reveal-speak-btn')?.addEventListener('click', () => speak(card.target_en));
+  document.getElementById('shaky-btn')?.addEventListener('click', () => onRecallResult(card, 'shaky'));
+  document.getElementById('instant-btn')?.addEventListener('click', () => onRecallResult(card, 'instant'));
+}
+
+function onRecallResult(card: CardContent, result: 'shaky' | 'instant'): void {
+  if (result === 'shaky') {
+    const retries = shakyRetries.get(card.id) ?? 0;
+    if (retries < 2) {
+      shakyRetries.set(card.id, retries + 1);
+      insertRecallAt(card, queueIndex + 3);
+    } else {
+      // 何度も怪しい場合は無理せず一旦切り上げ、通常の復習スケジュールで再挑戦する
+      rate(card.id, Rating.Hard);
+      recallRemaining.delete(card.id);
+      shakyRetries.delete(card.id);
+    }
+  } else {
+    const remaining = (recallRemaining.get(card.id) ?? 1) - 1;
+    if (remaining > 0) {
+      recallRemaining.set(card.id, remaining);
+      insertRecallAt(card, queueIndex + 5);
+    } else {
+      rate(card.id, Rating.Good);
+      recallRemaining.delete(card.id);
+      shakyRetries.delete(card.id);
+    }
+  }
+  queueIndex++;
+  completedCount++;
+  renderReview();
+}
+
+// --- ステージ3: 本格的な復習（FSRSによる翌日以降の間隔反復・4段階評価） ---
+function renderFullReview(card: CardContent): void {
+  app.innerHTML = `
+    ${topBar()}
     <div class="review-card">
       <span class="topic-chip">${escapeHtml(card.topic)}</span>
-      ${firstExposure ? `<div class="hint-block">知っている形から予想してみよう：<br/><strong>${escapeHtml(card.hint_ja!)}</strong></div>` : ''}
       <div class="prompt-text">${escapeHtml(card.prompt_ja)}</div>
       ${card.cloze ? `<div class="cloze-text">${escapeHtml(card.cloze)}</div>` : ''}
 
@@ -175,10 +369,7 @@ function renderReview(): void {
     }
   });
   document.getElementById('check-btn')?.addEventListener('click', () => doReveal(card, input));
-  document.getElementById('exit-btn')?.addEventListener('click', () => {
-    screen = 'home';
-    render();
-  });
+  bindExit();
 
   revealed = false;
 }
@@ -199,7 +390,10 @@ function doReveal(card: CardContent, input: HTMLInputElement) {
   const revealArea = document.getElementById('reveal-area')!;
   revealArea.innerHTML = `
     <div class="reveal-block">
-      <span class="reveal-label">お手本</span>
+      <div class="learn-answer-row">
+        <span class="reveal-label">お手本</span>
+        ${speakerButton('reveal-speak-btn')}
+      </div>
       <span class="reveal-answer">${escapeHtml(card.target_en)}</span>
       ${card.note_ja ? `<div class="reveal-note">${escapeHtml(card.note_ja)}</div>` : ''}
     </div>
@@ -212,12 +406,14 @@ function doReveal(card: CardContent, input: HTMLInputElement) {
     </div>
   `;
   document.getElementById('check-btn')?.remove();
+  document.getElementById('reveal-speak-btn')?.addEventListener('click', () => speak(card.target_en));
 
   revealArea.querySelectorAll<HTMLButtonElement>('[data-grade]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const grade = Number(btn.dataset.grade) as Grade;
       rate(card.id, grade);
       queueIndex++;
+      completedCount++;
       renderReview();
     });
   });
@@ -228,8 +424,8 @@ function renderDone() {
     <div class="header">${LOGO_SVG}<div><div class="brand-title">Talkloop</div></div></div>
     <div class="card-panel done-panel">
       <div class="done-emoji">🎉</div>
-      <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-2);">今日のレビュー完了！</h2>
-      <p style="color: var(--color-text-muted); margin-bottom: var(--space-5);">${sessionTotal}枚おつかれさまでした。少しずつの積み重ねが2ヶ月後の会話力になります。</p>
+      <h2 style="font-size: var(--text-xl); margin-bottom: var(--space-2);">今日のレッスン完了！</h2>
+      <p style="color: var(--color-text-muted); margin-bottom: var(--space-5);">${completedCount}枚おつかれさまでした。少しずつの積み重ねが2ヶ月後の会話力になります。</p>
       <button id="home-btn" class="btn-primary">ホームに戻る</button>
     </div>
   `;
@@ -249,7 +445,7 @@ function renderModalOverlay() {
   overlay.innerHTML = `
     <div class="modal-sheet">
       <h3 style="font-size: var(--text-lg);">自分のフレーズを追加</h3>
-      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin: 0;">生活の中で「これ英語で言いたかった」を追加すると、レビューに混ざります。</p>
+      <p style="font-size: var(--text-sm); color: var(--color-text-muted); margin: 0;">生活の中で「これ英語で言いたかった」を追加すると、レッスンに混ざります。</p>
       <label class="field-label">日本語（状況・意味）</label>
       <input id="new-ja" class="field-input" placeholder="例：友達に週末の予定を聞きたい" />
       <label class="field-label">英語（お手本の答え）</label>

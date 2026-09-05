@@ -104,7 +104,16 @@ export function isNew(contentId: string): boolean {
   return !stored || stored.state === State.New;
 }
 
-export function getDueQueue(now: Date = new Date()): CardContent[] {
+// 1日に新しく学習するカードの上限（Pimsleur式に、初級者向けに少なめの枚数でじっくり）
+export const NEW_CARDS_PER_DAY = 6;
+
+// 「復習が必要な既習カード」と「まだ習っていない新規カード」を分けて返す。
+// 新規カードはこのあと main.ts 側で「学習 → その場での復習チェック → 卒業」という
+// 段階を踏んでから、はじめて長期的な復習スケジュール（FSRS）に入る。
+export function getSessionPlan(now: Date = new Date()): {
+  reviewCards: CardContent[];
+  newCards: CardContent[];
+} {
   const content = getAllContent();
   const due: CardContent[] = [];
   const fresh: CardContent[] = [];
@@ -116,10 +125,16 @@ export function getDueQueue(now: Date = new Date()): CardContent[] {
       due.push(c);
     }
   }
-  // 復習カードを優先しつつ、新規カードを少しずつ混ぜる（1日の新規上限の目安: 10枚）
-  const shuffledDue = shuffle(due);
-  const newBatch = shuffle(fresh).slice(0, 10);
-  return interleave(shuffledDue, newBatch);
+  return {
+    reviewCards: shuffle(due),
+    newCards: shuffle(fresh).slice(0, NEW_CARDS_PER_DAY),
+  };
+}
+
+// ホーム画面の「今日やること」件数表示用（復習＋新規の合計）
+export function getDueQueue(now: Date = new Date()): CardContent[] {
+  const { reviewCards, newCards } = getSessionPlan(now);
+  return interleave(reviewCards, newCards);
 }
 
 function shuffle<T>(arr: T[]): T[] {

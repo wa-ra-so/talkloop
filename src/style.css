@@ -412,6 +412,79 @@ button {
 .grade-good { background: var(--color-success); }
 .grade-easy { background: var(--color-primary); }
 
+.grade-row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grade-row-2 .grade-btn {
+  font-size: var(--text-base);
+  padding: var(--space-4) var(--space-2);
+}
+
+/* Learn stage (Pimsleur-style: hear it, see it, say it) */
+.learn-card {
+  border-color: var(--color-primary-tint);
+}
+
+.learn-answer-block {
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.learn-answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.learn-answer-row .reveal-answer {
+  font-size: var(--text-xl);
+}
+
+.learn-tip {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.shadow-instruction {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-1) 0;
+}
+
+.speaker-btn {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.speaker-btn:hover {
+  background: var(--color-primary-tint);
+}
+
+.recall-audio-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
 /* Session complete */
 .done-panel {
   text-align: center;

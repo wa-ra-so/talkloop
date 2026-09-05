@@ -4,13 +4,13 @@ export type CardKind = 'phrase' | 'grammar';
 
 export interface CardContent {
   id: string;
-  week: number; // 0 = コアフレーズ, 1-8 = 文法週
+  week: number; // 0 = 自己紹介・あいさつ, 1-8 = 文法週（初級レベル）
   topic: string; // 表示用トピック名
   kind: CardKind;
   prompt_ja: string; // 日本語の状況・指示
   cloze?: string; // 文法ドリル用の空所文（英語, ___ が空所）
   target_en: string; // お手本の正解（英文 or フレーズ）
-  hint_ja?: string; // grammar系の初回学習時だけ出す「知っている形」のヒント
+  hint_ja?: string; // 使い方のちょっとしたコツ（学習画面で表示）
   note_ja?: string; // 正解後に出す簡単な文法解説
 }
 
@@ -50,348 +50,341 @@ const grammar = (
 });
 
 // ------------------------------------------------------------------
-// Week 0: 生活で毎日使えるコア・フレーズ 30
+// Level 0: 自己紹介・あいさつ（一番はじめに覚える超基本フレーズ）
 // ------------------------------------------------------------------
-const W0 = '会話の基本フレーズ';
+const W0 = 'あいさつ・自己紹介';
 export const week0: CardContent[] = [
-  // 挨拶・雑談
+  phrase(0, W0, '「こんにちは」とあいさつしたい', 'Hi, how are you?'),
+  phrase(0, W0, '「元気です、ありがとう」と答えたい', "I'm good, thank you."),
   phrase(0, W0, '「はじめまして」と言いたい', 'Nice to meet you.'),
-  phrase(0, W0, '「お元気ですか」とカジュアルに聞きたい', 'How have you been?'),
-  phrase(0, W0, '相手の仕事を尋ねたい', 'What do you do?'),
-  phrase(0, W0, '出身を尋ねたい', 'Where are you from?'),
-  phrase(0, W0, '「最近どう？」と聞きたい', "What's new with you?"),
-  // 買い物・注文
-  phrase(0, W0, 'カフェでコーヒーを注文したい', 'Can I get a coffee, please?'),
-  phrase(0, W0, '値段を尋ねたい', 'How much is this?'),
-  phrase(0, W0, '試着したいと伝えたい', 'Can I try this on?'),
-  phrase(0, W0, 'カードで払えるか確認したい', 'Do you take credit cards?'),
-  phrase(0, W0, '持ち帰りにしたいと伝えたい', 'Can I get this to go?'),
-  // 道案内・移動
-  phrase(0, W0, '道を尋ねたい（駅への行き方）', 'Excuse me, how do I get to the station?'),
-  phrase(0, W0, '「そこの角を左に曲がってください」と案内したい', 'Turn left at the corner.'),
-  phrase(0, W0, 'ここまでどれくらいかかるか聞きたい', 'How long does it take from here?'),
-  phrase(0, W0, 'このバスが正しいか確認したい', 'Does this bus go to downtown?'),
-  phrase(0, W0, 'タクシーで行き先を伝えたい', 'Could you take me to this address?'),
-  // 誘う・予定を決める
-  phrase(0, W0, '今週末の予定を聞きたい', 'Are you free this weekend?'),
-  phrase(0, W0, 'ランチに誘いたい', 'Do you want to grab lunch?'),
-  phrase(0, W0, '別の日を提案したい', 'How about next Friday instead?'),
-  phrase(0, W0, '時間と場所を確認したい', 'What time and where should we meet?'),
-  phrase(0, W0, '予定が変わったことを伝えたい', 'Something came up, can we reschedule?'),
-  // 意見・相槌
-  phrase(0, W0, '相手に同意したい', 'I think so too.'),
-  phrase(0, W0, '相手の言いたいことを確認したい', 'What do you mean?'),
-  phrase(0, W0, '自分の考えを控えめに伝えたい', 'I guess it depends.'),
-  phrase(0, W0, '「それは良い考えですね」と言いたい', "That's a good point."),
-  phrase(0, W0, '話を整理して確認したい', 'So basically, you mean...?'),
-  // 感情・トラブル対応
+  phrase(0, W0, '自分の名前を伝えたい', "I'm Muneshiro."),
+  phrase(0, W0, '出身を伝えたい', "I'm from Chiba, Japan."),
+  phrase(0, W0, '相手の出身を尋ねたい', 'Where are you from?'),
+  phrase(0, W0, '相手の名前を尋ねたい', "What's your name?"),
+  phrase(0, W0, '「またね」と別れの挨拶をしたい', 'See you later.'),
+  phrase(0, W0, '「すみません」と話しかけたい', 'Excuse me.'),
+  phrase(0, W0, '「ありがとうございます」とお礼を言いたい', 'Thank you so much.'),
+  phrase(0, W0, '「どういたしまして」と答えたい', "You're welcome."),
+  phrase(0, W0, '「わかりません」と伝えたい', "I don't understand."),
   phrase(0, W0, 'もう一度言ってほしいと頼みたい', 'Could you say that again?'),
-  phrase(0, W0, 'ゆっくり話してほしいと頼みたい', 'Could you speak a little slower?'),
-  phrase(0, W0, '感謝を伝えたい', 'I really appreciate it.'),
-  phrase(0, W0, '謝りたい（軽いミス）', 'Sorry about that, my bad.'),
-  phrase(0, W0, '大丈夫だと相手を安心させたい', "Don't worry, it's fine."),
+  phrase(0, W0, 'ゆっくり話してほしいと頼みたい', 'Could you speak slowly, please?'),
+  phrase(0, W0, '「大丈夫です」と答えたい', "It's okay."),
 ];
 
 // ------------------------------------------------------------------
-// Week 1: 現在完了 vs 過去形（日常の出来事）
+// Week 1: be動詞（am / is / are）で自分や物のことを話す
 // ------------------------------------------------------------------
-const W1 = '現在完了 vs 過去形';
+const W1 = 'be動詞（am / is / are）';
 export const week1: CardContent[] = [
-  grammar(1, W1, '「先週その映画を見た」と、過去のいつかを伝えたい', 'I watched that movie last week.', {
-    hint_ja: 'すでに知っている形: "I watched that movie."',
-    note_ja: '過去形は「いつ起きたか」がはっきりしている出来事に使う。last week などの過去の目印とセット。',
+  grammar(1, W1, '「私は初心者です」と伝えたい', "I'm a beginner.", {
+    note_ja: '主語が I のときは am。I\'m は I am の短縮形。',
   }),
-  grammar(1, W1, '「その映画はもう見た」と、経験として伝えたい', "I've already watched that movie.", {
-    hint_ja: '知っている形: "I watched that movie."',
-    note_ja: '現在完了 (have + 過去分詞) は「今につながる経験・結果」を表す。いつ見たかは重要でない。',
+  grammar(1, W1, '「これは私の携帯です」と伝えたい', 'This is my phone.', {
+    cloze: 'This ___ my phone.',
+    note_ja: 'this / that / it など単数のものには is を使う。',
   }),
-  grammar(1, W1, '「日本に行ったことがある」と経験を伝えたい', "I've been to Japan.", {
-    cloze: "I ___ ___ to Japan.",
-    note_ja: '経験を表す現在完了の定番: have been to〜。',
+  grammar(1, W1, '「彼女は私の友達です」と伝えたい', "She's my friend.", {
+    note_ja: 'he / she / it には is。She\'s は She is の短縮形。',
   }),
-  grammar(1, W1, '「まだ宿題を終えていない」と伝えたい', "I haven't finished my homework yet.", {
-    cloze: "I ___ finished my homework yet.",
-    note_ja: '未完了・未達成を表すときは haven\'t/hasn\'t + 過去分詞 + yet。',
+  grammar(1, W1, '「あなたは親切ですね」と伝えたい', "You're very kind.", {
+    note_ja: 'you / we / they には are。You\'re は You are の短縮形。',
   }),
-  grammar(1, W1, '「たった今着いた」と伝えたい', "I've just arrived.", {
-    hint_ja: '知っている形: "I arrived." (過去形)',
-    note_ja: 'just, already, yet は現在完了と相性がいい合図語。',
+  grammar(1, W1, '「私たちは同僚です」と伝えたい', "We're coworkers.", {
+    hint_ja: '知っている形: "You\'re very kind."',
+    note_ja: 'we にも are を使う。',
   }),
-  grammar(1, W1, '「昨日空港に着いた」と、時を明示して伝えたい', 'I arrived at the airport yesterday.', {
-    hint_ja: '知っている形: "I\'ve just arrived."',
-    note_ja: 'yesterday など具体的な過去の時点がある場合は過去形を使う。',
+  grammar(1, W1, '「この席は空いていますか」と尋ねたい', 'Is this seat taken?', {
+    note_ja: '疑問文は be動詞を主語の前に出す: Is this...?',
   }),
-  grammar(1, W1, '「このレストランに来るのは3回目」と伝えたい', "I've been to this restaurant three times.", {
-    note_ja: '回数 (three times) を伴う経験も現在完了でよく表す。',
+  grammar(1, W1, '「これは何ですか」と尋ねたい', 'What is this?', {
+    note_ja: '疑問詞 + is/are + 主語 で質問を作る。',
   }),
-  grammar(1, W1, '「先月、新しい仕事を始めた」と伝えたい', 'I started a new job last month.', {
-    note_ja: '過去の起点がはっきりしているので過去形。',
+  grammar(1, W1, '「私は今日忙しくありません」と否定したい', "I'm not busy today.", {
+    note_ja: '否定は am/is/are のあとに not を置く。',
   }),
-  grammar(1, W1, '「ずっとこの会社で働いている」と、今も続く状態を伝えたい', "I've worked here for three years.", {
-    cloze: 'I ___ here for three years.',
-    note_ja: '現在完了 + for/since は「過去から今まで続く」ことを表す。',
+  grammar(1, W1, '「彼はここにいません」と否定したい', "He's not here.", {
+    note_ja: 'He\'s not = He is not。',
   }),
-  grammar(1, W1, '「彼にはまだ会ったことがない」と伝えたい', "I haven't met him yet.", {
-    note_ja: '否定形 + yet で「まだ〜していない」。',
+  grammar(1, W1, '「確かではありません」と伝えたい', "I'm not sure.", {
+    note_ja: '会話でとてもよく使う一言。',
   }),
-  grammar(1, W1, '「その本はもう読んだ？」と相手に聞きたい', 'Have you read that book yet?', {
-    note_ja: '相手の経験・完了を尋ねるときは Have you + 過去分詞 ...yet?',
+  grammar(1, W1, '「準備はできていますか」と尋ねたい', 'Are you ready?', {
+    note_ja: 'you に対する疑問文は Are you...? の形。',
   }),
-  grammar(1, W1, '「先週末、その本を読んだ」と時を明示して答えたい', 'I read that book last weekend.', {
-    note_ja: '相手が「いつ」を尋ねたら答えは過去形になる。',
+  grammar(1, W1, '「私は疲れています」と伝えたい', "I'm tired.", {
+    note_ja: '感情や状態は be動詞 + 形容詞で表す。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 2: 冠詞・可算/不可算（買い物の場面）
+// Week 2: 一般動詞の現在形（好き・欲しい・持っている）
 // ------------------------------------------------------------------
-const W2 = '冠詞と可算・不可算名詞';
+const W2 = '一般動詞の現在形';
 export const week2: CardContent[] = [
-  grammar(2, W2, '「りんごを1つ買った」と伝えたい', 'I bought an apple.', {
-    note_ja: '母音で始まる可算名詞の単数には a ではなく an。',
+  grammar(2, W2, '「コーヒーが好きです」と伝えたい', 'I like coffee.', {
+    note_ja: '一般動詞は be動詞を使わず、そのまま動詞を置く。',
   }),
-  grammar(2, W2, '「パンを少し買った」と、不可算名詞で伝えたい', 'I bought some bread.', {
-    hint_ja: '知っている形: "I bought an apple."',
-    note_ja: 'bread は不可算名詞なので a/an は付けず some を使う。',
+  grammar(2, W2, '「納豆は好きではありません」と否定したい', "I don't like natto.", {
+    hint_ja: '知っている形: "I like coffee."',
+    note_ja: '一般動詞の否定は don\'t / doesn\'t + 動詞の原形。',
   }),
-  grammar(2, W2, '「水を1杯もらえますか」と数えられない物を数える表現で頼みたい', 'Can I get a glass of water?', {
-    note_ja: '不可算名詞は a glass of / a cup of などの単位で数える。',
+  grammar(2, W2, '「車を持っています」と伝えたい', 'I have a car.', {
+    note_ja: '「持っている」は have。',
   }),
-  grammar(2, W2, '「その店（前に話題にした店）は閉まっていた」と特定して伝えたい', 'The store was closed.', {
-    cloze: '___ store was closed.',
-    note_ja: 'お互いにどの店か分かっている時は the を使う。',
+  grammar(2, W2, '「お寿司は好きですか」と尋ねたい', 'Do you like sushi?', {
+    note_ja: '一般動詞の疑問文は Do you...? の形。',
   }),
-  grammar(2, W2, '「（一般的に）店は9時に開く」と伝えたい', 'A store usually opens at nine.', {
-    hint_ja: '知っている形: "The store was closed."',
-    note_ja: '特定しない一般論では a/an、または無冠詞の複数形を使う。',
+  grammar(2, W2, '「彼は英語を話します」と伝えたい（三人称）', 'He speaks English.', {
+    note_ja: '主語が he/she/it のときは動詞に s を付ける。',
   }),
-  grammar(2, W2, '「アドバイスを少しもらえますか」と、不可算名詞で頼みたい', 'Can you give me some advice?', {
-    note_ja: 'advice, information, furniture などは不可算名詞の代表例。',
+  grammar(2, W2, '「彼女はコーヒーを飲みません」と否定したい（三人称）', "She doesn't drink coffee.", {
+    hint_ja: '知っている形: "He speaks English."',
+    note_ja: '三人称の否定は doesn\'t + 動詞の原形（s は付けない）。',
   }),
-  grammar(2, W2, '「新しい靴を買った」と複数形で伝えたい', 'I bought some new shoes.', {
-    note_ja: 'shoes, pants など対になるものは常に複数形。',
+  grammar(2, W2, '「英語を勉強したいです」と伝えたい', 'I want to learn English.', {
+    note_ja: 'want to + 動詞の原形 で「〜したい」。',
   }),
-  grammar(2, W2, '「お金がほとんどない」と伝えたい', "I don't have much money.", {
-    note_ja: '不可算名詞の量には much/little を使う（many/few は可算名詞用）。',
+  grammar(2, W2, '「毎朝コーヒーを飲みます」と習慣を伝えたい', 'I drink coffee every morning.', {
+    note_ja: '習慣や日課には現在形を使う。',
   }),
-  grammar(2, W2, '「友達が数人いる」と伝えたい', 'I have a few friends here.', {
-    hint_ja: '知っている形: "I don\'t have much money."',
-    note_ja: '可算名詞の少なさには a few、不可算名詞には a little。',
+  grammar(2, W2, '「毎日どんなことをしますか」と尋ねたい', 'What do you do every day?', {
+    note_ja: '疑問詞 + do you + 動詞 で日常について質問する。',
   }),
-  grammar(2, W2, '「時間があまりない」と伝えたい', "I don't have much time.", {
-    note_ja: 'time は不可算名詞として扱う（「回数」の意味では可算にもなる）。',
+  grammar(2, W2, '「ラーメンが大好きです」と伝えたい', 'I really like ramen.', {
+    note_ja: 'really を挟むと「とても好き」のニュアンスになる。',
+  }),
+  grammar(2, W2, '「彼女はいつも忙しいです」と伝えたい', "She's always busy.", {
+    note_ja: 'always（頻度）は be動詞のあとに置く。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 3: 前置詞・道案内と待ち合わせ
+// Week 3: 疑問詞で質問する（何・どこ・いつ・誰・どうやって）
 // ------------------------------------------------------------------
-const W3 = '前置詞（時間・場所）';
+const W3 = '疑問詞（What / Where / When / Who / How）';
 export const week3: CardContent[] = [
-  grammar(3, W3, '「3時に会おう」と時刻を伝えたい', "Let's meet at three.", {
-    note_ja: '時刻には at を使う（at three, at noon）。',
+  grammar(3, W3, '「トイレはどこですか」と尋ねたい', 'Where is the bathroom?', {
+    note_ja: 'Where + is/are で場所を尋ねる。',
   }),
-  grammar(3, W3, '「月曜日に会おう」と曜日を伝えたい', "Let's meet on Monday.", {
-    hint_ja: '知っている形: "Let\'s meet at three."',
-    note_ja: '曜日・日付には on を使う（on Monday, on July 1st）。',
+  grammar(3, W3, '「これは何ですか」と尋ねたい', 'What is this called in English?', {
+    hint_ja: '知っている形: "Where is the bathroom?"',
+    note_ja: 'What is this called...? は名前を知りたいときの便利な表現。',
   }),
-  grammar(3, W3, '「7月に日本に行く」と月を伝えたい', "I'm going to Japan in July.", {
-    note_ja: '月・年・季節には in を使う（in July, in 2026, in summer）。',
+  grammar(3, W3, '「何時に仕事を始めますか」と尋ねたい', 'When do you start work?', {
+    note_ja: 'When + do/does + 主語 + 動詞。',
   }),
-  grammar(3, W3, '「駅の前で待ってて」と場所を伝えたい', 'Wait for me in front of the station.', {
-    note_ja: 'in front of 〜 は「〜の前で」。',
+  grammar(3, W3, '「あの人は誰ですか」と尋ねたい', 'Who is that?', {
+    note_ja: 'Who + is/are で人を尋ねる。',
   }),
-  grammar(3, W3, '「カフェの隣に本屋がある」と伝えたい', "There's a bookstore next to the cafe.", {
-    note_ja: 'next to 〜 は「〜の隣に」。',
+  grammar(3, W3, '「これは英語で何と言いますか」と尋ねたい', 'How do you say this in English?', {
+    note_ja: 'How do you say...? は英語学習でとても便利なフレーズ。',
   }),
-  grammar(3, W3, '「信号のところを右に曲がって」と伝えたい', 'Turn right at the traffic light.', {
-    note_ja: '交差点や特定の地点には at を使う。',
+  grammar(3, W3, '「駅までどうやって行きますか」と尋ねたい', 'How do I get to the station?', {
+    note_ja: 'How do I get to...? で道順を尋ねる。',
   }),
-  grammar(3, W3, '「2つ目の角を過ぎたところにある」と伝えたい', "It's past the second corner.", {
-    note_ja: 'past 〜 は「〜を過ぎて」。',
+  grammar(3, W3, '「なぜ遅れたのですか」と尋ねたい', 'Why are you late?', {
+    note_ja: 'Why + be動詞/do で理由を尋ねる。',
   }),
-  grammar(3, W3, '「郵便局とスーパーの間にある」と伝えたい', "It's between the post office and the supermarket.", {
-    note_ja: 'between A and B は「AとBの間」。',
+  grammar(3, W3, '「どれくらいの頻度で運動しますか」と尋ねたい', 'How often do you exercise?', {
+    note_ja: 'How often...? は頻度を尋ねる定番表現。',
   }),
-  grammar(3, W3, '「歩いて10分くらい」とかかる時間を伝えたい', "It's about ten minutes on foot.", {
-    note_ja: '手段には by/on を使い分ける（by car, by train, on foot）。',
+  grammar(3, W3, '「値段はいくらですか」と尋ねたい', 'How much is this?', {
+    note_ja: 'How much...? は値段を尋ねるときの基本。',
   }),
-  grammar(3, W3, '「電車で来た」と手段を伝えたい', 'I came by train.', {
-    hint_ja: '知っている形: "It\'s about ten minutes on foot."',
-    note_ja: '乗り物には by、徒歩だけ on foot になる例外。',
+  grammar(3, W3, '「何人家族ですか」と尋ねたい', 'How many people are in your family?', {
+    note_ja: 'How many + 複数名詞 で数を尋ねる。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 4: 助動詞 would/could/might/should（誘う・断る）
+// Week 4: There is/are・数・前置詞の基本
 // ------------------------------------------------------------------
-const W4 = '助動詞（誘い・提案・断り）';
+const W4 = 'There is/are・前置詞の基本';
 export const week4: CardContent[] = [
-  grammar(4, W4, '「一緒に映画を見に行きませんか」と丁寧に誘いたい', 'Would you like to see a movie together?', {
-    note_ja: 'Would you like to 〜? は丁寧な誘い方。',
+  grammar(4, W4, '「猫が一匹います」と伝えたい', "There's a cat.", {
+    note_ja: 'There is/There\'s + 単数名詞 で「〜がある/いる」。',
   }),
-  grammar(4, W4, '「手伝ってもらえますか」と丁寧に頼みたい', 'Could you help me with this?', {
-    hint_ja: '知っている形: "Would you like to see a movie?"',
-    note_ja: 'Could you 〜? は Can you より丁寧な依頼。',
+  grammar(4, W4, '「ここにはたくさんの人がいます」と伝えたい', 'There are many people here.', {
+    hint_ja: '知っている形: "There\'s a cat."',
+    note_ja: '複数名詞には There are を使う。',
   }),
-  grammar(4, W4, '「今夜は雨が降るかもしれない」と可能性を伝えたい', 'It might rain tonight.', {
-    note_ja: 'might は50%くらいの弱い可能性を表す。',
+  grammar(4, W4, '「テーブルの上にあります」と場所を伝えたい', "It's on the table.", {
+    note_ja: '接触している面の上には on。',
   }),
-  grammar(4, W4, '「もっと早く出発した方がいいよ」と助言したい', 'You should leave earlier.', {
-    note_ja: 'should は「〜すべき」というアドバイス・提案。',
+  grammar(4, W4, '「かばんの中にあります」と場所を伝えたい', "It's in my bag.", {
+    hint_ja: '知っている形: "It\'s on the table."',
+    note_ja: '空間の中には in。',
   }),
-  grammar(4, W4, '「せっかくだけど今回は遠慮しておく」と丁寧に断りたい', "I'd love to, but I can't make it this time.", {
-    note_ja: "I'd love to, but... は好意的に断る定番表現。",
+  grammar(4, W4, '「駅の近くにあります」と場所を伝えたい', "It's near the station.", {
+    note_ja: 'near は「〜の近くに」。',
   }),
-  grammar(4, W4, '「代わりに来週はどう？」と代案を出したい', 'Could we do next week instead?', {
-    note_ja: '断ったあとに代案を出すときも Could we 〜? が丁寧。',
+  grammar(4, W4, '「兄弟が2人います」と伝えたい', 'I have two brothers.', {
+    note_ja: '数を数えられるものは数字 + 複数形。',
   }),
-  grammar(4, W4, '「もし時間があれば行きたい」と条件付きの希望を伝えたい', 'I would go if I had time.', {
-    note_ja: 'would は現実的でない仮定の帰結にも使う（次週の仮定法につながる）。',
+  grammar(4, W4, '「時間があまりありません」と伝えたい', "I don't have much time.", {
+    note_ja: 'time のような数えられない名詞には much を使う。',
   }),
-  grammar(4, W4, '「静かにしていただけますか」とお願いしたい', 'Would you mind keeping it down?', {
-    note_ja: 'Would you mind 〜ing? は非常に丁寧な依頼表現。',
+  grammar(4, W4, '「少しお金を持っています」と伝えたい', 'I have some money.', {
+    note_ja: '肯定文では some（いくつかの）を使うことが多い。',
   }),
-  grammar(4, W4, '「多分間に合わないと思う」と弱い予測をしたい', 'I might not make it in time.', {
-    note_ja: 'might not は「〜しないかもしれない」という弱い否定的予測。',
+  grammar(4, W4, '「お茶はありますか」と尋ねたい', 'Do you have any tea?', {
+    note_ja: '疑問文・否定文では any を使うことが多い。',
   }),
-  grammar(4, W4, '「予約しておくべきだったね」と過去の後悔を伝えたい', 'We should have made a reservation.', {
-    note_ja: 'should have + 過去分詞 は「〜すべきだった」という過去の後悔。',
+  grammar(4, W4, '「7時に会いましょう」と時間を伝えたい', "Let's meet at seven.", {
+    note_ja: '時刻には at を使う。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 5: 関係詞・分詞（趣味・旅行の話）
+// Week 5: can（できる）・want to / would like to（したい）
 // ------------------------------------------------------------------
-const W5 = '関係詞・分詞（趣味・旅行）';
+const W5 = 'can・want to / would like to';
 export const week5: CardContent[] = [
-  grammar(5, W5, '「京都で撮った写真を見せたい」と伝えたい', 'This is a photo I took in Kyoto.', {
-    note_ja: '関係代名詞（that/which）は省略できることが多い口語表現。',
+  grammar(5, W5, '「少し英語が話せます」と伝えたい', 'I can speak a little English.', {
+    note_ja: 'can + 動詞の原形 で「〜できる」。',
   }),
-  grammar(5, W5, '「ラーメンが好きな友達がいる」と伝えたい', 'I have a friend who loves ramen.', {
-    hint_ja: '知っている形: "This is a photo I took in Kyoto."',
-    note_ja: '人を説明するときは who を使う: a friend who loves ramen.',
+  grammar(5, W5, '「泳げません」と伝えたい', "I can't swim.", {
+    hint_ja: '知っている形: "I can speak a little English."',
+    note_ja: '否定は can\'t（cannot）+ 動詞の原形。',
   }),
-  grammar(5, W5, '「駅の近くに住んでいる人を知っている」と伝えたい', 'I know someone who lives near the station.', {
-    note_ja: 'who + 動詞 で「〜する人」を後ろから説明する。',
+  grammar(5, W5, '「手伝ってもらえますか」と頼みたい', 'Can you help me?', {
+    note_ja: 'Can you...? は依頼にもよく使う。',
   }),
-  grammar(5, W5, '「電車で眠っている男の人が見えた」と伝えたい（分詞）', 'I saw a man sleeping on the train.', {
-    note_ja: '現在分詞 (sleeping) は「〜している」状態を後ろから説明する。',
+  grammar(5, W5, '「写真を撮ってもいいですか」と許可を求めたい', 'Can I take a picture?', {
+    note_ja: 'Can I...? は「〜してもいい？」と許可を求める表現。',
   }),
-  grammar(5, W5, '「日本語で書かれた本を読んでいる」と伝えたい（分詞）', "I'm reading a book written in Japanese.", {
-    hint_ja: '知っている形: "I saw a man sleeping on the train."',
-    note_ja: '過去分詞 (written) は「〜された」という受け身の意味で名詞を説明する。',
+  grammar(5, W5, '「ビーチに行きたいです」と伝えたい', 'I want to go to the beach.', {
+    note_ja: 'want to + 動詞の原形 で「〜したい」。',
   }),
-  grammar(5, W5, '「初めて行った国はタイだった」と伝えたい', 'Thailand was the first country I visited.', {
-    note_ja: '関係詞節が省略された形。日常会話ではこの省略形が自然。',
+  grammar(5, W5, '「コーヒーをお願いします」と丁寧に注文したい', "I'd like a coffee, please.", {
+    note_ja: "I'd like ~ (= I would like) は want より丁寧な言い方。",
   }),
-  grammar(5, W5, '「一緒に旅行した友達が結婚した」と伝えたい', 'The friend I traveled with got married.', {
-    note_ja: '前置詞が最後に残るパターン（口語で自然）: the friend I traveled with.',
+  grammar(5, W5, '「一緒に映画を見に行きたいですか」と丁寧に誘いたい', 'Would you like to see a movie?', {
+    hint_ja: '知っている形: "I\'d like a coffee, please."',
+    note_ja: 'Would you like to...? は丁寧な誘い方。',
   }),
-  grammar(5, W5, '「登山が好きな同僚がいる」と伝えたい', 'I have a coworker who loves hiking.', {
-    note_ja: 'who + 趣味の動詞で人を紹介する形は自己紹介でも便利。',
+  grammar(5, W5, '「今週末は空いていますか」と尋ねたい', 'Are you free this weekend?', {
+    note_ja: '誘う前の定番の切り出し方。',
   }),
-  grammar(5, W5, '「カフェで働いている女性を知っている」と伝えたい（分詞）', 'I know a woman working at that cafe.', {
-    note_ja: '現在分詞 working は「働いている」という進行中の状態を表す。',
+  grammar(5, W5, '「静かにしていただけますか」と丁寧に頼みたい', 'Could you be quiet, please?', {
+    note_ja: 'Could you...? は Can you より少し丁寧な依頼。',
   }),
-  grammar(5, W5, '「日本製の時計を買った」と伝えたい（分詞）', 'I bought a watch made in Japan.', {
-    note_ja: '過去分詞 made in Japan で「〜製の」を表す定番表現。',
+  grammar(5, W5, '「もう一度説明してもらえますか」と頼みたい', 'Could you explain it again?', {
+    note_ja: '授業やレッスンでも使える便利なフレーズ。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 6: 仮定法（もしも〜だったら）
+// Week 6: 過去形の基本（was / were, 規則・不規則動詞）
 // ------------------------------------------------------------------
-const W6 = '仮定法（現実的でない仮定）';
+const W6 = '過去形の基本';
 export const week6: CardContent[] = [
-  grammar(6, W6, '「時間があればジムに行くのに」と現在の事実に反する仮定をしたい', "If I had time, I would go to the gym.", {
-    note_ja: '現在の事実に反する仮定: If + 過去形, ... would + 動詞の原形。',
+  grammar(6, W6, '「昨日は忙しかったです」と伝えたい', 'I was busy yesterday.', {
+    note_ja: 'am/is の過去形は was。',
   }),
-  grammar(6, W6, '「宝くじが当たったら世界一周するのに」と非現実的な仮定をしたい', "If I won the lottery, I would travel the world.", {
-    hint_ja: '知っている形: "If I had time, I would go to the gym."',
-    note_ja: '起こりそうにない仮定にも同じ形 (If + 過去形, would +原形) を使う。',
+  grammar(6, W6, '「先週は暑かったです」と伝えたい', 'It was hot last week.', {
+    note_ja: 'it の過去形も was。',
   }),
-  grammar(6, W6, '「もっと英語が話せたらいいのに」と現状への願望を伝えたい', 'I wish I could speak English better.', {
-    note_ja: 'I wish + 過去形/could は「今そうでない」ことへの願望。',
+  grammar(6, W6, '「私たちは公園にいました」と伝えたい', 'We were at the park.', {
+    hint_ja: '知っている形: "It was hot last week."',
+    note_ja: 'are の過去形は were。',
   }),
-  grammar(6, W6, '「あの時電車に乗り遅れなかったら、間に合っていたのに」と過去の仮定をしたい', "If I hadn't missed the train, I would have made it.", {
-    note_ja: '過去の事実に反する仮定: If + had + 過去分詞, ... would have + 過去分詞。',
+  grammar(6, W6, '「先週東京に行きました」と伝えたい', 'I went to Tokyo last week.', {
+    note_ja: 'go の過去形は went（不規則動詞）。',
   }),
-  grammar(6, W6, '「もっと早く伝えていればよかった」と過去への後悔を伝えたい', 'I wish I had told you earlier.', {
-    note_ja: 'I wish + had + 過去分詞 は過去の後悔を表す。',
+  grammar(6, W6, '「時間がありませんでした」と否定したい', "I didn't have time.", {
+    note_ja: '一般動詞の過去の否定は didn\'t + 動詞の原形。',
   }),
-  grammar(6, W6, '「彼があなたの立場だったらどうすると思う？」と相手に尋ねたい', 'What would you do if you were in his shoes?', {
-    note_ja: 'If I were you のように be動詞は仮定法で were になりやすい。',
+  grammar(6, W6, '「昼食は食べましたか」と尋ねたい', 'Did you eat lunch?', {
+    note_ja: '過去の疑問文は Did you + 動詞の原形。',
   }),
-  grammar(6, W6, '「もし雨が降ったら、家にいます」と現実的にありうる仮定をしたい', "If it rains, I'll stay home.", {
-    hint_ja: '知っている形: "If I won the lottery, I would travel the world."',
-    note_ja: '現実的にありうる条件は If + 現在形, will + 原形（仮定法とは形が違う）。',
+  grammar(6, W6, '「その映画を見ました」と伝えたい', 'I watched that movie.', {
+    note_ja: '規則動詞の過去形は動詞 + ed。',
   }),
-  grammar(6, W6, '「もっとお金があったら新しい家に引っ越すのに」と伝えたい', "If I had more money, I would move to a new place.", {
-    note_ja: '日常会話で一番使う仮定法パターンの一つ。',
+  grammar(6, W6, '「彼女に会いました」と伝えたい', 'I met her yesterday.', {
+    note_ja: 'meet の過去形は met（不規則動詞）。',
   }),
-  grammar(6, W6, '「彼女が来ればいいのに」と現状への願望を伝えたい', 'I wish she could come.', {
-    note_ja: '相手に関する願望にも I wish + could を使える。',
+  grammar(6, W6, '「新しい仕事を始めました」と伝えたい', 'I started a new job.', {
+    note_ja: 'start の過去形は started。',
   }),
-  grammar(6, W6, '「もし生まれ変わったらパイロットになりたい」と伝えたい', "If I were born again, I'd want to be a pilot.", {
-    note_ja: "I'd = I would の短縮形。会話ではよく縮められる。",
+  grammar(6, W6, '「楽しかったです」と伝えたい', 'It was fun.', {
+    note_ja: '感想を伝えるときによく使う一言。',
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 7: 受動態・使役・話法（ニュースを伝える）
+// Week 7: 未来の表現（will / going to）と予定
 // ------------------------------------------------------------------
-const W7 = '受動態・使役・話法';
+const W7 = '未来の表現（will / going to）';
 export const week7: CardContent[] = [
-  grammar(7, W7, '「その店は先月閉店した」と、行為者より事実を伝えたい（受動態）', 'The store was closed down last month.', {
-    note_ja: '誰がやったかより「何が起きたか」が大事な時は受動態 (be + 過去分詞)。',
+  grammar(7, W7, '「あとで電話します」と伝えたい', "I'll call you later.", {
+    note_ja: 'will（\'ll）+ 動詞の原形 は、その場で決めた未来のこと。',
   }),
-  grammar(7, W7, '「このアプリは世界中で使われている」と伝えたい（受動態）', 'This app is used all over the world.', {
-    hint_ja: '知っている形: "The store was closed down last month."',
-    note_ja: '現在の一般的事実にも受動態はよく使う: is/are + 過去分詞。',
+  grammar(7, W7, '「来月旅行に行く予定です」と伝えたい', "I'm going to travel next month.", {
+    hint_ja: '知っている形: "I\'ll call you later."',
+    note_ja: 'be going to は前もって決めていた予定に使う。',
   }),
-  grammar(7, W7, '「髪を切ってもらった」と使役の表現で伝えたい', 'I had my hair cut.', {
-    note_ja: 'have + 目的語 + 過去分詞 は「〜してもらう」という使役表現。',
+  grammar(7, W7, '「今週末は何をする予定ですか」と尋ねたい', 'What are you going to do this weekend?', {
+    note_ja: '予定を尋ねるときの定番の質問。',
   }),
-  grammar(7, W7, '「携帯を修理してもらう必要がある」と伝えたい（使役）', 'I need to get my phone fixed.', {
-    note_ja: 'get + 目的語 + 過去分詞 も have と同じ使役の意味で使える。',
+  grammar(7, W7, '「明日は雨が降るでしょう」と予測したい', "It will rain tomorrow.", {
+    note_ja: 'will は予測にも使う。',
   }),
-  grammar(7, W7, '「彼は明日来ると言っていた」と、人の発言を伝えたい（話法）', 'He said he would come tomorrow.', {
-    note_ja: '話法では will → would のように時制が一つ過去にずれる。',
+  grammar(7, W7, '「来週会いましょう」と伝えたい', "Let's meet next week.", {
+    note_ja: "Let's + 動詞の原形 で「〜しましょう」と誘う。",
   }),
-  grammar(7, W7, '「彼女は疲れていると言った」と伝えたい（話法）', 'She said she was tired.', {
-    hint_ja: '知っている形: "He said he would come tomorrow."',
-    note_ja: 'is/am → was のように、話法では現在形も過去形にずれる。',
+  grammar(7, W7, '「もうすぐ着きます」と伝えたい', "I'll be there soon.", {
+    note_ja: '待ち合わせでよく使う一言。',
   }),
-  grammar(7, W7, '「彼は私にすぐ来るように言った」と伝えたい（話法・命令）', 'He told me to come right away.', {
-    note_ja: '命令の伝聞は tell + 人 + to + 動詞の原形。',
+  grammar(7, W7, '「今夜は家にいるつもりです」と伝えたい', "I'm going to stay home tonight.", {
+    note_ja: '今夜・来週などの近い未来の予定にも going to を使う。',
   }),
-  grammar(7, W7, '「そのニュースはみんなに知られている」と伝えたい（受動態）', 'The news is known to everyone.', {
-    note_ja: 'be known to 〜 は「〜に知られている」という定番表現。',
+  grammar(7, W7, '「手伝いますよ」とその場で申し出たい', "I'll help you.", {
+    note_ja: 'その場で決めた申し出には will を使う。',
   }),
-  grammar(7, W7, '「その報告書は来週までに提出されなければならない」と伝えたい（受動態＋助動詞）', 'The report must be submitted by next week.', {
-    note_ja: '助動詞 + be + 過去分詞 で「〜されなければならない」を表す。',
+  grammar(7, W7, '「来年英語を勉強し続けるつもりです」と伝えたい', "I'm going to keep studying English next year.", {
+    note_ja: '長期的な計画にも going to が使える。',
   }),
-  grammar(7, W7, '「彼女は元気か聞かれた」と伝えたい（話法・疑問文）', 'She was asked if she was doing well.', {
-    note_ja: '疑問文の話法は if/whether を使って平叙文の語順にする。',
+  grammar(7, W7, '「絶対に間に合いません」と伝えたい', "I won't make it in time.", {
+    note_ja: "won't = will not。",
   }),
 ];
 
 // ------------------------------------------------------------------
-// Week 8: 総復習週（日記を書くように、これまでの文法を混ぜて使う）
+// Week 8: 形容詞の比較・つなぎ言葉・総復習
 // ------------------------------------------------------------------
-const W8 = '総復習：英語で日記を書く';
+const W8 = '比較・つなぎ言葉・総復習';
 export const week8: CardContent[] = [
-  grammar(8, W8, '「今日は新しいカフェに行ってきた」と日記風に伝えたい', 'I went to a new cafe today.', { note_ja: '過去形の基本の復習。' }),
-  grammar(8, W8, '「そこには前から行ってみたかった」と現在完了で伝えたい', "I'd wanted to go there for a while.", { note_ja: '過去完了 (had + 過去分詞) で「その時点までの状態」を表す応用形。' }),
-  grammar(8, W8, '「コーヒーは友達に勧められた」と受動態で伝えたい', 'The coffee was recommended by a friend.', { note_ja: '受動態の復習: be動詞 + 過去分詞 + by。' }),
-  grammar(8, W8, '「もし混んでいたら別の店に行っていたと思う」と仮定法で伝えたい', "If it had been crowded, I would have gone somewhere else.", { note_ja: '仮定法過去完了の復習。' }),
-  grammar(8, W8, '「一緒に行った友達は写真が趣味だ」と関係詞で伝えたい', 'The friend I went with loves photography.', { note_ja: '関係詞（省略形）の復習。' }),
-  grammar(8, W8, '「また今度行くべきだと思う」と助動詞で伝えたい', 'I think we should go again sometime.', { note_ja: '助動詞 should の復習。' }),
-  grammar(8, W8, '「店員さんは日本語を話せると言っていた」と話法で伝えたい', 'The staff said they could speak Japanese.', { note_ja: '話法（can→could）の復習。' }),
-  grammar(8, W8, '「窓際に座っている人たちが楽しそうだった」と分詞で伝えたい', 'The people sitting by the window looked happy.', { note_ja: '現在分詞の後置修飾の復習。' }),
-  grammar(8, W8, '「今度は友達を誘ってみようと思う」と伝えたい', "Next time, I'll invite a friend along.", { note_ja: '未来の意志 will の自然な使い方。' }),
-  grammar(8, W8, '「全体的にすごく良い一日だった」とまとめたい', 'Overall, it was a really good day.', { note_ja: '日記の締めくくりによく使う一言。' }),
+  grammar(8, W8, '「これはあれより大きいです」と比べたい', 'This is bigger than that.', {
+    note_ja: '短い形容詞は -er + than で比べる。',
+  }),
+  grammar(8, W8, '「コーヒーよりお茶の方が好きです」と比べたい', 'I like tea more than coffee.', {
+    note_ja: '長い形容詞・一般的な好みは more ~ than。',
+  }),
+  grammar(8, W8, '「これが一番好きです」と伝えたい', 'I like this one the best.', {
+    note_ja: '最上級は the best（一番）。',
+  }),
+  grammar(8, W8, '「疲れていたので早く帰りました」と理由を伝えたい', 'I was tired, so I went home early.', {
+    note_ja: 'so は「だから」と結果をつなぐ。',
+  }),
+  grammar(8, W8, '「ラーメンは好きですが、少し高いです」と対比を伝えたい', "I like ramen, but it's a little expensive.", {
+    note_ja: 'but は「しかし」と対比をつなぐ。',
+  }),
+  grammar(8, W8, '「疲れていたから早く寝ました」と理由を伝えたい', 'I went to bed early because I was tired.', {
+    note_ja: 'because は理由を説明するときに使う。',
+  }),
+  grammar(8, W8, '「新しいカフェに行って、コーヒーを飲みました」と日記風に伝えたい', 'I went to a new cafe and had a coffee.', {
+    note_ja: 'and で動作を2つつなげられる。',
+  }),
+  grammar(8, W8, '「もっと英語を練習する必要があります」と伝えたい', 'I need to practice English more.', {
+    note_ja: 'need to + 動詞の原形 で「〜する必要がある」。',
+  }),
+  grammar(8, W8, '「少しずつ上手になっています」と伝えたい', "I'm getting better little by little.", {
+    note_ja: '2ヶ月の学習の締めくくりにぴったりの一言。',
+  }),
+  grammar(8, W8, '「今日は本当に良い一日でした」とまとめたい', 'Today was a really good day.', {
+    note_ja: '日記の締めくくりによく使う一言。',
+  }),
 ];
 
 export const allCards: CardContent[] = [
