@@ -85,6 +85,8 @@ header p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
 .next-stage{font-size:.85rem;background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
 .qno{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .big{font-size:1.05rem;font-weight:700}
+.word{font-family:var(--f-en);font-size:1.45rem;font-weight:600;line-height:1.3}
+.tip{font-size:.85rem;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px}
 .review{display:grid;gap:10px}
 .ritem{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
 .ritem:first-child{border-top:0;padding-top:0}
@@ -110,6 +112,7 @@ header p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
       <div class="seg" role="group" aria-label="教材" id="subSeg">
         <button data-sub="phrase">お助けフレーズ</button>
         <button data-sub="qa">面接Q&amp;A</button>
+        <button data-sub="vocab">単語・型</button>
       </div>
       <div class="seg" role="group" aria-label="速度" id="rateSeg">
         <button data-rate="0.75">ゆっくり</button>
@@ -171,14 +174,58 @@ const QA=[
  {c:"生活",q:"How have you prepared for your trip to the U.S.?",qj:"渡米の準備は？",a:"I am studying English with textbooks. I have also prepared money for travel and living costs, and I am packing medicine and other things I need.",aj:"英語の勉強、費用の準備、薬などの荷物の用意をしています。",k:["英語","費用","薬などの荷物"]}
 ];
 const CATS=["すべて","経歴","人物","研修理由","受入先","帰国後","生活"];
+// 単語・型: 自分の回答に何度も出てくる重要ワードと、答えの骨組みになる頻出フレーズ
+const VOCAB=[
+ {c:"重要ワード",w:"host company",m:"受入企業",ex:"My host company is Kiwami, LLC.",exj:"私の受入企業はKiwami, LLCです。"},
+ {c:"重要ワード",w:"training plan",m:"研修計画",ex:"According to my training plan, I will learn sushi skills step by step.",exj:"研修計画では、寿司の技術を段階的に学びます。",tip:"According to ～ ＝「～によると」。DS-7002の話はこの形で始める。"},
+ {c:"重要ワード",w:"trainee",m:"研修生(トレーニー)",ex:"I am applying as a trainee.",exj:"トレーニーとして申請しています。",tip:"強勢は後ろ：train-EE。"},
+ {c:"重要ワード",w:"sushi chef",m:"寿司職人",ex:"I think sushi chefs today need to serve foreign customers well.",exj:"これからの寿司職人は、海外のお客様にうまく出す力が必要だと思います。"},
+ {c:"重要ワード",w:"nigiri",m:"握り寿司",ex:"I practiced nigiri at my previous job.",exj:"前の職場で握りを練習しました。"},
+ {c:"重要ワード",w:"sushi rolls",m:"巻物",ex:"I practiced nigiri and sushi rolls.",exj:"握りと巻物を練習しました。"},
+ {c:"重要ワード",w:"fillet fish",m:"魚をさばく",ex:"I practiced filleting fish, but I did not serve it to customers.",exj:"魚をさばく練習はしましたが、お客様には出していません。",tip:"アメリカ英語では fillet の t を読まない：フィレイ。"},
+ {c:"重要ワード",w:"omakase",m:"おまかせ",ex:"The restaurant serves sushi, including omakase.",exj:"その店はおまかせを含む寿司を出しています。"},
+ {c:"重要ワード",w:"authentic",m:"本格的な",ex:"Jugemu serves authentic Japanese sushi.",exj:"寿限無は本格的な寿司を出しています。",tip:"強勢は2つ目：au-THEN-tic。"},
+ {c:"重要ワード",w:"kitchen staff",m:"調理スタッフ",ex:"I worked as kitchen staff at koujitsu.",exj:"koujitsuで調理スタッフとして働きました。"},
+ {c:"重要ワード",w:"dining area",m:"ホール(客席)",ex:"I worked in both the kitchen and the dining area.",exj:"厨房とホールの両方で働きました。",tip:"「ホール」を hall と言うと「廊下・会館」の意味になる。dining area か front of house。"},
+ {c:"重要ワード",w:"part-time",m:"アルバイトで",ex:"I worked part-time in the kitchen at my family's restaurant.",exj:"家族の店の厨房でアルバイトをしていました。",tip:"「アルバイト」は英語では通じない。work part-time。"},
+ {c:"重要ワード",w:"business administration",m:"経営学",ex:"I studied business administration at Tohoku Gakuin University.",exj:"東北学院大学で経営学を学びました。"},
+ {c:"重要ワード",w:"attract customers",m:"集客する",ex:"I wanted to learn how restaurants attract customers.",exj:"飲食店がどう集客するかを学びたかったです。"},
+ {c:"重要ワード",w:"online booking",m:"ネット予約",ex:"I suggest advertising and online booking services.",exj:"広告とネット予約のサービスを提案しています。"},
+ {c:"重要ワード",w:"foreign customers",m:"海外のお客様",ex:"Many foreign customers visit sushi restaurants in Japan.",exj:"日本の寿司店には海外のお客様が多く来ます。"},
+ {c:"重要ワード",w:"local customers",m:"地元のお客様",ex:"My father's restaurant focuses on local customers.",exj:"父の店は地元のお客様に特化しています。"},
+ {c:"重要ワード",w:"neighborhood",m:"近所・地域",ex:"People in the neighborhood love it.",exj:"近所の方にとても好まれています。"},
+ {c:"重要ワード",w:"curiosity",m:"好奇心",ex:"My strength is curiosity.",exj:"私の強みは好奇心です。",tip:"発音：キュリ・オ・シティ。"},
+ {c:"重要ワード",w:"get motivated",m:"やる気が出る",ex:"It sometimes takes time for me to get motivated.",exj:"やる気が出るまで時間がかかることがあります。"},
+ {c:"重要ワード",w:"Rookie Award",m:"新人賞",ex:"I won the Rookie Award and the MVP award.",exj:"新人賞とMVPを受賞しました。",tip:"「賞を取る」は win an award。get でも通じるが win が自然。"},
+ {c:"重要ワード",w:"language barrier",m:"言語の壁",ex:"I think the hardest part will be the language barrier.",exj:"一番大変なのは言語の壁だと思います。"},
+ {c:"重要ワード",w:"return to Japan",m:"日本に帰国する",ex:"After the training, I will return to Japan.",exj:"研修後は日本に帰国します。",tip:"帰国の意思を伝える大事な一文。はっきり言い切る。"},
+ {c:"重要ワード",w:"ryokan",m:"旅館",ex:"I like staying at traditional Japanese inns, called ryokan.",exj:"日本の伝統的な宿、旅館に泊まるのが好きです。",tip:"相手が知らない日本語は、traditional Japanese inns のように先に説明を付ける。"},
+ {c:"頻出フレーズ",w:"I want to learn ～",m:"～を学びたい",ex:"I want to learn sushi skills in a real sushi restaurant.",exj:"実際の寿司店で寿司の技術を学びたいです。",tip:"面接で一番使う型。work ではなく learn を使うのが研修らしさのポイント。"},
+ {c:"頻出フレーズ",w:"My goal is to ～",m:"私の目標は～すること",ex:"My goal is to open my own sushi restaurant.",exj:"私の目標は自分の寿司店を開くことです。"},
+ {c:"頻出フレーズ",w:"I worked as ～ at ～",m:"～で～として働いた",ex:"I worked as kitchen staff at koujitsu.",exj:"koujitsuで調理スタッフとして働きました。"},
+ {c:"頻出フレーズ",w:"From ～ to ～, I ～",m:"～から～まで、～した",ex:"From 2023 to 2025, I worked as kitchen staff.",exj:"2023年から2025年まで調理スタッフとして働きました。",tip:"年号は twenty twenty-three と2桁ずつ読む。"},
+ {c:"頻出フレーズ",w:"Since ～, I have ～",m:"～からずっと～している",ex:"Since April 2025, I have worked in sales for Tabelog.",exj:"2025年4月から食べログの営業をしています。",tip:"Since のときは過去形ではなく have + 過去分詞。"},
+ {c:"頻出フレーズ",w:"I mainly ～",m:"主に～した",ex:"At work, I mainly cooked meat and vegetables.",exj:"仕事では主に肉と野菜を調理しました。"},
+ {c:"頻出フレーズ",w:"I have experience in ～",m:"～の経験がある",ex:"I have experience in Japanese cooking, but not with fish or sushi.",exj:"和食の経験はありますが、魚や寿司の経験はありません。",tip:"experience は数えないので an を付けない。"},
+ {c:"頻出フレーズ",w:"I think ～",m:"～だと思う",ex:"I think this experience will help me run my own restaurant.",exj:"この経験は自分の店の経営に役立つと思います。"},
+ {c:"頻出フレーズ",w:"That is why ～",m:"だからこそ～",ex:"That is why I want to learn how to handle fish.",exj:"だからこそ、魚の扱い方を学びたいです。",tip:"理由を言った後のつなぎ。答えを短くまとめられる。"},
+ {c:"頻出フレーズ",w:"As a result, ～",m:"その結果～",ex:"As a result, I won the Rookie Award and the MVP award.",exj:"その結果、新人賞とMVPを受賞しました。"},
+ {c:"頻出フレーズ",w:"For example, ～",m:"例えば～",ex:"For example, I moved from cooking to sales to learn marketing.",exj:"例えば、販促を学ぶために調理から営業に移りました。"},
+ {c:"頻出フレーズ",w:"After the training, I will ～",m:"研修後は～する",ex:"After the training, I will work at my father's restaurant in Miyagi.",exj:"研修後は宮城の父の店で働きます。"},
+ {c:"頻出フレーズ",w:"In the future, I want to ～",m:"将来は～したい",ex:"In the future, I want to open my own sushi restaurant.",exj:"将来は自分の寿司店を開きたいです。"},
+ {c:"頻出フレーズ",w:"I will use ～ at ～",m:"～を～で活かす",ex:"I will use my sushi skills at my father's restaurant.",exj:"寿司の技術を父の店で活かします。",tip:"「活かす」は use で十分。make use of より言いやすい。"},
+ {c:"頻出フレーズ",w:"If ～, I will ～",m:"もし～なら～する",ex:"If I cannot continue the training, I will go back to Japan.",exj:"研修を続けられなければ、日本に帰ります。"},
+ {c:"頻出フレーズ",w:"I am ～ing now",m:"今～している",ex:"I am studying English with textbooks now.",exj:"今はテキストで英語を勉強しています。"}
+];
+const VCATS=["すべて","重要ワード","頻出フレーズ"];
 const GUIDE={
  practice:"STEP 1 練習：英文を見ながらお手本を聞き、まねして3回音読します(シャドーイング)。全部終わったら習得へ。",
  master:"STEP 2 習得：英文を見ずに質問を聞き、ヒントの要点だけで答えます。お手本で確認して「言えた」を目指します。",
  mock:"STEP 3 模擬面接：本番の速度で質問が続けて流れます。英文もヒントもなし。聞き取れなければ、お助けフレーズを声に出してから「もう一度聞く」を押してください。"
 };
 
-const ALL=[...PHRASES.map((p,i)=>({...p,key:"p"+i,kind:"phrase"})),...QA.map((q,i)=>({...q,key:"q"+i,kind:"qa"}))];
-const S={stage:"practice",sub:"qa",i:0,cat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
+const ALL=[...PHRASES.map((p,i)=>({...p,key:"p"+i,kind:"phrase"})),...QA.map((q,i)=>({...q,key:"q"+i,kind:"qa"})),...VOCAB.map((v,i)=>({...v,key:"v"+i,kind:"vocab"}))];
+const S={stage:"practice",sub:"qa",i:0,cat:"すべて",vcat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
 try{Object.assign(S,JSON.parse(localStorage.getItem("iena-drill2")||"{}"));}catch(e){}
 function save(){try{localStorage.setItem("iena-drill2",JSON.stringify(S));}catch(e){}}
 
@@ -192,7 +239,8 @@ function speak(t,r){if(!hasTTS){$("noVoice").hidden=false;return;}try{speechSynt
 function startTimer(sec){clearInterval(timerId);let t=sec;const tm=$("tm");if(!tm)return;tm.classList.remove("end");tm.textContent=t+"秒";
   timerId=setInterval(()=>{t--;if(!$("tm")){clearInterval(timerId);return;}tm.textContent=t>0?t+"秒":"終了";if(t<=0){clearInterval(timerId);tm.classList.add("end");}},1000);}
 
-function items(){return ALL.filter(x=>x.kind===S.sub&&(x.kind==="phrase"||S.cat==="すべて"||x.c===S.cat));}
+function curCat(){return S.sub==="vocab"?(S.vcat||"すべて"):S.cat;}
+function items(){const c=curCat();return ALL.filter(x=>x.kind===S.sub&&(x.kind==="phrase"||c==="すべて"||x.c===c));}
 
 function updateStages(){
   const total=ALL.length;
@@ -210,18 +258,21 @@ function updateStages(){
 
 function renderControls(){
   const mock=S.stage==="mock";
-  $("ctrlRow").hidden=mock; $("cats").hidden=mock||S.sub!=="qa"; $("nav").hidden=mock;
+  $("ctrlRow").hidden=mock; $("cats").hidden=mock||S.sub==="phrase"; $("nav").hidden=mock;
   document.querySelectorAll("#subSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===S.sub));
   document.querySelectorAll("#rateSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.rate===S.rate));
-  document.querySelectorAll("#cats .chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===S.cat));
-  $("guide").textContent=GUIDE[S.stage];
+  const c=curCat();
+  $("cats").innerHTML=(S.sub==="vocab"?VCATS:CATS).map(x=>`<button class="chip" data-c="${x}" aria-pressed="${x===c}">${x}</button>`).join("");
+  $("guide").textContent=S.sub==="vocab"&&!mock?(S.stage==="practice"?"単語・型(練習)：単語と例文を聞いて、それぞれまねして音読します。":"単語・型(習得)：日本語を見て英語で言い、次に例文ごと言えるか確かめます。"):GUIDE[S.stage];
 }
 
 function render(){
   clearInterval(timerId); renderControls(); updateStages();
   if(S.stage==="mock")return renderMock();
   const L=items(); if(S.i>=L.length)S.i=0; if(S.i<0)S.i=L.length-1;
-  const it=L[S.i]; const ph=it.kind==="phrase";
+  const it=L[S.i];
+  if(it.kind==="vocab")return renderVocab(it,L);
+  const ph=it.kind==="phrase";
   const qEn=ph?it.trigger:it.q, aEn=ph?it.en:it.a, aJp=ph?it.jp:it.aj;
   const st=S.done[it.key];
   const stTag=st==="ok"?'<span class="tag ok">言えた</span>':st==="again"?'<span class="tag todo">もう一度</span>':"";
@@ -316,8 +367,48 @@ function renderMock(){
   $("nextQ").onclick=()=>{m.pos++;save();render();if(m.pos<m.list.length)speak(QA[m.list[m.pos]].q,1.05);};
 }
 
-$("cats").innerHTML=CATS.map(c=>`<button class="chip" data-c="${c}">${c}</button>`).join("");
-$("cats").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;S.cat=b.dataset.c;S.i=0;save();render();};
+function renderVocab(it,L){
+  const st=S.done[it.key];
+  const stTag=st==="ok"?'<span class="tag ok">言えた</span>':st==="again"?'<span class="tag todo">もう一度</span>':"";
+  const head=`<div class="meta"><span class="tag">${esc(it.c)}</span>${stTag}</div>`;
+  const tip=it.tip?`<div class="tip">${esc(it.tip)}</div>`:"";
+  const say=t=>t.replace(/～/g,"");
+  if(S.stage==="practice"){
+    const n=S.read[it.key]||0;
+    $("card").innerHTML=head+`
+    <div class="step first"><h3><b>1</b>${it.c==="重要ワード"?"単語":"型"}</h3>
+      <div class="word">${esc(it.w)}</div><div class="jp">${esc(it.m)}</div>${tip}
+      <div class="row"><button class="btn" id="playW">▶ 聞く</button></div></div>
+    <div class="step"><h3><b>2</b>例文をまねして音読</h3>
+      <div class="en">${esc(it.ex)}</div><div class="jp">${esc(it.exj)}</div>
+      <div class="row"><button class="btn primary" id="playE">▶ 例文を聞く</button><button class="btn" id="readBtn">音読した</button>
+      <span class="dots" aria-label="音読 ${n}/3回">${[0,1,2].map(k=>`<i class="${k<n?"on":""}"></i>`).join("")}</span></div></div>`;
+    $("playW").onclick=()=>speak(say(it.w));
+    $("playE").onclick=()=>speak(it.ex);
+    $("readBtn").onclick=()=>{S.read[it.key]=Math.min(3,(S.read[it.key]||0)+1);save();if(S.read[it.key]>=3)S.i++;render();};
+  }else{
+    $("card").innerHTML=head+`
+    <div class="step first"><h3><b>1</b>日本語 → 英語で言う</h3>
+      <div class="big">${esc(it.m)}</div>
+      <div class="row"><button class="btn" id="showW">答えを見る</button></div>
+      <div class="reveal" id="ansW" hidden><div class="word">${esc(it.w)}</div>${tip}<div class="row"><button class="btn" id="playW">▶ 聞く</button></div></div></div>
+    <div class="step"><h3><b>2</b>例文ごと言う</h3>
+      <div class="jp">${esc(it.exj)}</div>
+      <div class="row"><button class="btn" id="talk">言う(10秒)</button><span class="timer" id="tm"></span><button class="btn" id="showE">お手本を見る</button></div>
+      <div class="reveal" id="ansE" hidden><div class="en">${esc(it.ex)}</div><div class="row"><button class="btn" id="playE">▶ お手本を聞く</button></div></div></div>
+    <div class="rate"><button class="btn again" id="again">もう一度</button><button class="btn ok" id="ok">言えた</button></div>`;
+    $("showW").onclick=()=>{$("ansW").hidden=false;};
+    $("playW").onclick=()=>speak(say(it.w));
+    $("talk").onclick=()=>startTimer(10);
+    $("showE").onclick=()=>{$("ansE").hidden=false;};
+    $("playE").onclick=()=>speak(it.ex);
+    $("ok").onclick=()=>{S.done[it.key]="ok";save();S.i++;render();};
+    $("again").onclick=()=>{S.done[it.key]="again";save();S.i++;render();};
+  }
+  const ok=L.filter(x=>S.done[x.key]==="ok").length;
+  $("prog").textContent=`${S.i+1} / ${L.length}`+(S.stage==="master"?`　言えた ${ok}`:"");
+}
+$("cats").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;if(S.sub==="vocab")S.vcat=b.dataset.c;else S.cat=b.dataset.c;S.i=0;save();render();};
 document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{S.stage=b.dataset.s;S.i=0;save();render();});
 $("nextStage").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;S.stage=b.dataset.go;S.i=0;save();render();};
 $("subSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.sub=b.dataset.sub;S.i=0;save();render();};
