@@ -1,11 +1,11 @@
 {
-  "name": "Talkloop",
-  "short_name": "Talkloop",
-  "description": "生活で使える会話文法を、2ヶ月で",
+  "name": "IENA面接ドリル",
+  "short_name": "面接ドリル",
+  "description": "IENA面接に向けた英語のリスニング・スピーキング練習",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#FBF7F2",
-  "theme_color": "#E8623D",
+  "background_color": "#F3F5F8",
+  "theme_color": "#24407A",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }

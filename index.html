@@ -2,19 +2,329 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#E8623D" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="2ヶ月で日常会話の文法を身につける、フレーズ優先の学習ツール" />
-    <title>Talkloop — 2ヶ月で会話文法を身につける</title>
+    <meta name="theme-color" content="#24407A" />
+    <meta name="description" content="IENA面接に向けた英語のリスニング・スピーキング練習。練習→習得→模擬面接の3段階。" />
+    <title>IENA面接ドリル</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" />
+    <style>
+[hidden]{display:none!important}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+/* Layout: one narrow column of cue cards; a sticky stage stepper (練習→習得→模擬面接) on top; each stage removes one more support */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --ink:#1A2332; --muted:#5B6677; --line:#D9DFE7;
+  --accent:#24407A; --accent-soft:#E2E8F4; --ok:#467228; --ok-soft:#E4EEDA; --warn:#94560F; --warn-soft:#F5E9D8;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-en:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10151D; --surface:#19202B; --ink:#E6EBF2; --muted:#9AA5B5; --line:#2B3543;
+  --accent:#93ACE2; --accent-soft:#22304A; --ok:#9DC47B; --ok-soft:#232F1B; --warn:#E3AA68; --warn-soft:#382915; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10151D; --surface:#19202B; --ink:#E6EBF2; --muted:#9AA5B5; --line:#2B3543;
+  --accent:#93ACE2; --accent-soft:#22304A; --ok:#9DC47B; --ok-soft:#232F1B; --warn:#E3AA68; --warn-soft:#382915; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.7}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:14px}
+header h1{margin:0;font-size:1.35rem;text-wrap:balance}
+header p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:grid;gap:8px;border-bottom:1px solid var(--line)}
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stage{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;border-radius:10px;padding:6px 8px;cursor:pointer;text-align:left;display:grid;gap:2px;min-width:0}
+.stage .n{font-size:.68rem;color:var(--muted);letter-spacing:.06em}
+.stage .t{font-weight:700;font-size:.88rem}
+.stage .p{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.stage .p i{display:block;height:100%;background:var(--accent)}
+.stage .v{font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stage[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:.82rem;padding:5px 10px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface);font-weight:700}
+.label{font-size:.72rem;color:var(--muted);letter-spacing:.06em}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.8rem;padding:3px 10px;border-radius:999px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.guide{font-size:.85rem;color:var(--muted);margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:grid;gap:14px;min-width:0}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--muted)}
+.tag{font-size:.72rem;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:700}
+.tag.todo{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.step{display:grid;gap:8px;padding-top:12px;border-top:1px dashed var(--line)}
+.step.first{border-top:0;padding-top:0}
+.step h3{margin:0;font-size:.8rem;color:var(--muted);letter-spacing:.06em;font-weight:500;display:flex;gap:8px;align-items:center}
+.step h3 b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--surface);font-size:.7rem}
+.en{font-family:var(--f-en);font-size:1.08rem;line-height:1.6}
+.jp{font-size:.9rem;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.88rem;padding:8px 14px;border-radius:10px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:focus-visible,.chip:focus-visible,.seg button:focus-visible,.stage:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.reveal{background:var(--bg);border-radius:10px;padding:12px;display:grid;gap:6px}
+.keys{margin:0;padding-left:1.2em;font-size:.9rem}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);min-width:3.5em}
+.timer.end{color:var(--warn)}
+.dots{display:flex;gap:6px;align-items:center}
+.dots i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--accent)}
+.dots i.on{background:var(--accent)}
+.rate{display:flex;gap:8px}
+.rate .btn{flex:1}
+.rate .ok,.mini.ok[aria-pressed="true"]{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:700}
+.rate .again,.mini.again[aria-pressed="true"]{background:var(--warn-soft);border-color:var(--warn);color:var(--warn);font-weight:700}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.progress{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.note{font-size:.82rem;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:8px 12px;margin:0}
+.next-stage{font-size:.85rem;background:var(--ok-soft);color:var(--ok);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.qno{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.big{font-size:1.05rem;font-weight:700}
+.review{display:grid;gap:10px}
+.ritem{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.ritem:first-child{border-top:0;padding-top:0}
+.mini{font-size:.8rem;padding:4px 10px}
+@media (prefers-reduced-motion: no-preference){.reveal{animation:fade .2s ease}}
+@keyframes fade{from{opacity:.4}to{opacity:1}}
+</style>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+<div class="wrap">
+  <header>
+    <h1>IENA面接ドリル</h1>
+    <p>練習で型を覚え、習得で自力で言えるようにし、模擬面接で本番どおりに話します。</p>
+  </header>
+
+  <div class="bar">
+    <div class="stages" role="group" aria-label="段階">
+      <button class="stage" data-s="practice"><span class="n">STEP 1</span><span class="t">練習</span><span class="p"><i id="pg1"></i></span><span class="v" id="pv1"></span></button>
+      <button class="stage" data-s="master"><span class="n">STEP 2</span><span class="t">習得</span><span class="p"><i id="pg2"></i></span><span class="v" id="pv2"></span></button>
+      <button class="stage" data-s="mock"><span class="n">STEP 3</span><span class="t">模擬面接</span><span class="p"><i id="pg3"></i></span><span class="v" id="pv3"></span></button>
+    </div>
+    <div class="row" id="ctrlRow">
+      <div class="seg" role="group" aria-label="教材" id="subSeg">
+        <button data-sub="phrase">お助けフレーズ</button>
+        <button data-sub="qa">面接Q&amp;A</button>
+      </div>
+      <div class="seg" role="group" aria-label="速度" id="rateSeg">
+        <button data-rate="0.75">ゆっくり</button>
+        <button data-rate="0.9">ふつう</button>
+        <button data-rate="1.05">本番</button>
+      </div>
+    </div>
+    <div class="chips" id="cats"></div>
+  </div>
+
+  <p class="guide" id="guide"></p>
+  <p class="note" id="noVoice" hidden>この環境では音声読み上げが使えません。英文を表示して、声に出す練習に使ってください。</p>
+  <div class="next-stage" id="nextStage" hidden></div>
+
+  <section class="card" id="card" aria-live="polite"></section>
+
+  <div class="nav" id="nav">
+    <button class="btn" id="prev">← 前へ</button>
+    <span class="progress" id="prog"></span>
+    <button class="btn" id="next">次へ →</button>
+  </div>
+</div>
+
+<script>
+const PHRASES=[
+ {en:"Could you speak more slowly, please?",jp:"もう少しゆっくり話していただけますか？",sit:"面接官が早口で質問してきた",trigger:"So could you tell me how your previous culinary experience relates to the training plan you submitted to us?",fast:true},
+ {en:"Could you say that again, please?",jp:"もう一度言っていただけますか？",sit:"質問の一部を聞き逃した",trigger:"What made you decide on this particular host organization?"},
+ {en:"Sorry, I don't understand the question.",jp:"すみません、質問が理解できませんでした。",sit:"聞き取れたが意味がわからない",trigger:"How would you assess the transferability of your competencies to the host's operational environment?"},
+ {en:"Could you explain that in a simpler way?",jp:"もう少し簡単に説明していただけますか？",sit:"難しい単語が入っていた",trigger:"What are your long-term professional aspirations?"},
+ {en:"Let me think for a moment, please.",jp:"少し考える時間をください。",sit:"すぐに答えが浮かばない",trigger:"If you could change one thing about the restaurant industry in Japan, what would it be?"},
+ {en:"Do you mean my plans after the training?",jp:"研修後の予定のことですか？(Do you mean 〜? で意味を確認)",sit:"質問の意味を確認したい",trigger:"What are your plans afterwards?",added:true},
+ {en:"I'm not sure how to say it in English, but it is a warm, local place.",jp:"英語でどう言えばいいかわかりませんが、温かい地元のお店です。",sit:"言いたい単語が出てこない",trigger:"What kind of atmosphere does your father's restaurant have?",added:true},
+ {en:"Could you repeat the last part, please?",jp:"最後の部分をもう一度言っていただけますか？",sit:"長い質問の後半を聞き逃した",trigger:"Tell me about your training plan, your housing, and how you will get to work.",added:true}
+];
+const QA=[
+ {c:"経歴",q:"Please introduce yourself.",qj:"自己紹介をしてください。",a:"My name is Sota Sugawara. I studied business administration at Tohoku Gakuin University. I worked in Japanese restaurant kitchens for about five years. Now I work in sales for Tabelog, a restaurant review site in Japan. My goal is to open my own sushi restaurant, so I want to improve my sushi skills in this training.",aj:"菅原宗大です。東北学院大学で経営学を学び、和食の厨房で約5年働きました。現在は食べログの営業です。自分の寿司店を開くために、研修で寿司の技術を高めたいです。",k:["名前と大学","和食の厨房で約5年","今は食べログの営業","寿司店を開く目標"]},
+ {c:"経歴",q:"What do you do now?",qj:"現在はどんな仕事をしていますか？",a:"I work in sales for Tabelog at Kakaku.com. Tabelog is a popular restaurant review and booking site in Japan. I work with restaurant owners and suggest advertising and online booking services. I also use market data to make my proposals.",aj:"カカクコムで食べログの営業をしています。飲食店に広告や予約サービスを提案し、市場データも使っています。",k:["Tabelog の説明","飲食店オーナーに提案","データを使う"]},
+ {c:"経歴",q:"Can you tell me about your work history?",qj:"職歴を教えてください。",a:"From 2020 to 2023, I worked part-time in the kitchen at my family's restaurant. From 2023 to 2025, I worked as kitchen staff at koujitsu. I worked in both the kitchen and the dining area. Since April 2025, I have worked in sales for Tabelog.",aj:"2020〜2023年は家族の店の厨房でアルバイト、2023〜2025年はkoujitsuで調理スタッフ。2025年4月から食べログの営業です。",k:["家族の店 2020–2023","koujitsu 2023–2025","食べログ 2025年4月〜"]},
+ {c:"経歴",q:"Why did you move from cooking to sales?",qj:"調理から営業に移った理由は？",a:"I wanted to learn how restaurants attract customers. At Tabelog, I help many restaurants with advertising and online booking. I think this experience will help me run my own restaurant in the future.",aj:"飲食店の集客を学びたかったからです。将来、自分の店の経営に役立つと考えています。",k:["集客を学びたかった","多くの店を支援","将来の経営に役立つ"]},
+ {c:"人物",q:"What is your strength?",qj:"あなたの強みは？",a:"My strength is curiosity. When I am interested in something, I study it deeply. I moved from cooking to sales to learn how restaurants get customers. I had no sales experience, but I won the Rookie Award and the MVP award.",aj:"強みは好奇心です。未経験の営業でも深く学び、新人賞とMVPを取りました。",k:["curiosity","深く学ぶ","新人賞とMVP"]},
+ {c:"人物",q:"What is your weakness?",qj:"あなたの短所は？",a:"It sometimes takes time for me to get motivated. So when I start a new task, I first think about why it is important.",aj:"やる気が出るまで時間がかかることがあります。なので新しい作業では、まず背景と目的を考えます。",k:["やる気に時間がかかる","まず目的を考える"]},
+ {c:"人物",q:"Tell me about a difficult situation you dealt with.",qj:"過去の困難な状況を教えてください。",a:"When I started sales at Tabelog, I had no sales experience. I kept my goal in mind and studied hard to solve each restaurant's problems. As a result, I won the Rookie Award and the MVP award in my department.",aj:"未経験から営業を始め、目標を忘れずに勉強し、新人賞とMVPを取りました。",k:["未経験で営業","店の課題解決のために勉強","新人賞とMVP"]},
+ {c:"人物",q:"What makes you different from other people?",qj:"他の人との違いは？",a:"I have both kitchen experience and restaurant marketing experience. Both are connected to my goal of opening my own restaurant.",aj:"調理と飲食店の販促の両方の経験があり、どちらも開業の目標につながっています。",k:["調理＋販促の両方","開業の目標につながる"]},
+ {c:"人物",q:"What did you enjoy about your past jobs?",qj:"仕事で楽しかったことは？",a:"I enjoyed feeling that both jobs were connected to my goal. In the kitchen, I learned the basics of cooking. In sales, I learned how restaurants get customers.",aj:"どちらの仕事も目標につながっていると感じられたことです。",k:["目標につながる実感","調理で基礎","営業で集客"]},
+ {c:"研修理由",q:"Why do you want to get sushi experience in the U.S.?",qj:"なぜ米国で寿司の経験を積みたい？",a:"Many foreign customers visit sushi restaurants in Japan. I think sushi chefs today need to serve sushi well to people from other countries. In the U.S., I can learn sushi skills and also how to serve and explain sushi to foreign customers.",aj:"日本の寿司店には海外のお客様が多く来ます。米国で、技術に加えて海外のお客様への出し方や説明を学びたいです。",k:["海外のお客様が多い","海外客に伝える力","技術＋出し方・説明"]},
+ {c:"研修理由",q:"Your father's restaurant serves sushi. Why don't you learn from him?",qj:"父親の店で寿司を出しているのに、なぜ父から学ばない？",a:"My father's restaurant focuses on local customers. People in the neighborhood love it. But if I only learn from him, I will only know his way. In the U.S., I want to learn new ideas. Then I want to combine his strong local ties with my new ideas.",aj:"父の店は地元に愛されていますが、父からだけでは父のやり方しか学べません。米国で得た考えと合わせて店を良くしたいです。",k:["地元に愛される店","父のやり方だけになる","相乗効果"]},
+ {c:"研修理由",q:"Have you made sushi before?",qj:"寿司を作った経験は？",a:"I practiced nigiri, sushi rolls, and filleting fish at my previous job. But I did not serve sushi to customers. At work, I mainly cooked meat and vegetables. So I want to learn sushi skills in a real sushi restaurant.",aj:"前職で握り・巻物・さばきを練習しましたが、お客様には出していません。仕事では主に肉と野菜を担当しました。",k:["握り・巻物・さばきを練習","客には出していない","主に肉と野菜"]},
+ {c:"研修理由",q:"How does your past experience connect to this training?",qj:"過去の経験は研修にどうつながる？",a:"I worked in Japanese kitchens for about five years. I prepared and cooked meat and vegetables. I also learned how a kitchen works and how to serve customers. With this experience, I can focus on learning sushi and fish skills.",aj:"和食の厨房で約5年、肉と野菜の調理をし、厨房の流れと接客も学びました。だから研修では寿司と魚に集中できます。",k:["約5年の和食経験","厨房の流れと接客","寿司と魚に集中できる"]},
+ {c:"受入先",q:"What is the name of your host company?",qj:"受入企業名は？",a:"My host company is Kiwami, LLC. The restaurant is called Sushi Jugemu.",aj:"受入企業はKiwami, LLC、店はSushi Jugemuです。",k:["Kiwami, LLC","Sushi Jugemu"]},
+ {c:"受入先",q:"Where is it located?",qj:"どこにありますか？",a:"It is in Cresskill, New Jersey.",aj:"ニュージャージー州クレスキルです。",k:["New Jersey（New York ではない）"]},
+ {c:"受入先",q:"What kind of restaurant is it?",qj:"どんな店ですか？",a:"It is an authentic Japanese restaurant. It serves sushi and Japanese dishes, including omakase.",aj:"本格的な和食店で、おまかせを含む寿司と和食を出しています。",k:["本格和食","寿司とおまかせ"]},
+ {c:"受入先",q:"Why did you choose this host company?",qj:"なぜこの受入先を選んだ？",a:"A friend introduced me to Sushi Jugemu. My friend is also going to train there. Jugemu serves authentic Japanese sushi in the U.S. So I can learn sushi skills and how to serve sushi to local customers.",aj:"同じく研修予定の知人の紹介です。本格的な寿司の技術と、現地のお客様への出し方を学べます。",k:["知人の紹介","本格的な寿司","現地のお客様への出し方"]},
+ {c:"受入先",q:"What will you learn during your training?",qj:"研修で何を学ぶ予定ですか？",a:"According to my training plan, I will first learn [phase 1]. Next, I will learn [phase 2]. Finally, I will learn [phase 3].",aj:"研修計画(DS-7002)の内容が届いたら完成させます。",k:["DS-7002 と一致させる"],todo:true},
+ {c:"帰国後",q:"What will you do after the training?",qj:"研修後はどうする予定？",a:"After the training, I will return to Japan and work at my father's restaurant in Miyagi. It also serves sushi, so I can use my new skills right away. In the future, I want to open my own sushi restaurant.",aj:"帰国して宮城の父の店で働きます。寿司も出しているので技術をすぐ活かせます。将来は自分の寿司店を開きたいです。",k:["帰国する","宮城の父の店","将来は自分の寿司店"]},
+ {c:"帰国後",q:"How will you use what you learn in Japan?",qj:"学んだことを日本でどう活かす？",a:"I will use my sushi and fish skills at my father's restaurant and later at my own. I will also use what I learn about serving foreign customers. My Tabelog experience will help me attract customers.",aj:"寿司と魚の技術を父の店と自分の店で、海外客への対応も活かします。食べログの経験は集客に役立ちます。",k:["父の店→自分の店","海外客への対応","食べログ経験で集客"]},
+ {c:"帰国後",q:"What will you do if things don't go as expected?",qj:"うまくいかなかったらどうする？",a:"If things go wrong, I will first talk to my host company and IENA to find a solution. If I cannot continue the training, I will go back to Japan. I will work at a restaurant and keep working toward my goal.",aj:"まず受入先とIENAに相談します。続けられなければ帰国し、飲食店で働きながら目標を続けます。",k:["まず相談する","続けられなければ帰国","目標は続ける"]},
+ {c:"生活",q:"What do you think will be the hardest part of living in the U.S.?",qj:"米国生活で一番大変なことは？",a:"I think the hardest part will be the language barrier. I am studying English with textbooks now. I will study more before I go. In the U.S., I will always ask when I do not understand.",aj:"言語の壁です。今はテキストで勉強し、渡米前にさらに学びます。現地ではわからないことはすぐ聞きます。",k:["言語の壁","テキストで勉強中","わからなければ聞く"]},
+ {c:"生活",q:"What are your hobbies?",qj:"趣味は？",a:"I like traveling around Japan and staying at traditional Japanese inns, called ryokan.",aj:"国内の旅館巡りが好きです。",k:["旅館巡り"]},
+ {c:"生活",q:"How have you prepared for your trip to the U.S.?",qj:"渡米の準備は？",a:"I am studying English with textbooks. I have also prepared money for travel and living costs, and I am packing medicine and other things I need.",aj:"英語の勉強、費用の準備、薬などの荷物の用意をしています。",k:["英語","費用","薬などの荷物"]}
+];
+const CATS=["すべて","経歴","人物","研修理由","受入先","帰国後","生活"];
+const GUIDE={
+ practice:"STEP 1 練習：英文を見ながらお手本を聞き、まねして3回音読します(シャドーイング)。全部終わったら習得へ。",
+ master:"STEP 2 習得：英文を見ずに質問を聞き、ヒントの要点だけで答えます。お手本で確認して「言えた」を目指します。",
+ mock:"STEP 3 模擬面接：本番の速度で質問が続けて流れます。英文もヒントもなし。聞き取れなければ、お助けフレーズを声に出してから「もう一度聞く」を押してください。"
+};
+
+const ALL=[...PHRASES.map((p,i)=>({...p,key:"p"+i,kind:"phrase"})),...QA.map((q,i)=>({...q,key:"q"+i,kind:"qa"}))];
+const S={stage:"practice",sub:"qa",i:0,cat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
+try{Object.assign(S,JSON.parse(localStorage.getItem("iena-drill2")||"{}"));}catch(e){}
+function save(){try{localStorage.setItem("iena-drill2",JSON.stringify(S));}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let voice=null,timerId=null;
+const hasTTS=("speechSynthesis" in window);
+function pickVoice(){if(!hasTTS)return;try{const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]US/i.test(v.lang));voice=vs.find(v=>/Samantha|Google US English|Aria|Jenny/i.test(v.name))||vs[0]||null;}catch(e){}}
+if(hasTTS){pickVoice();try{speechSynthesis.onvoiceschanged=pickVoice;}catch(e){}}else{$("noVoice").hidden=false;}
+function speak(t,r){if(!hasTTS){$("noVoice").hidden=false;return;}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=r||S.rate;if(voice)u.voice=voice;speechSynthesis.speak(u);}catch(e){$("noVoice").hidden=false;}}
+function startTimer(sec){clearInterval(timerId);let t=sec;const tm=$("tm");if(!tm)return;tm.classList.remove("end");tm.textContent=t+"秒";
+  timerId=setInterval(()=>{t--;if(!$("tm")){clearInterval(timerId);return;}tm.textContent=t>0?t+"秒":"終了";if(t<=0){clearInterval(timerId);tm.classList.add("end");}},1000);}
+
+function items(){return ALL.filter(x=>x.kind===S.sub&&(x.kind==="phrase"||S.cat==="すべて"||x.c===S.cat));}
+
+function updateStages(){
+  const total=ALL.length;
+  const r=ALL.filter(x=>(S.read[x.key]||0)>=3).length;
+  const d=ALL.filter(x=>S.done[x.key]==="ok").length;
+  $("pg1").style.width=(r/total*100)+"%"; $("pv1").textContent=`${r}/${total} 音読完了`;
+  $("pg2").style.width=(d/total*100)+"%"; $("pv2").textContent=`${d}/${total} 言えた`;
+  $("pg3").style.width=Math.min(S.mocks,3)/3*100+"%"; $("pv3").textContent=`${S.mocks}回 実施`;
+  document.querySelectorAll(".stage").forEach(b=>b.setAttribute("aria-pressed",b.dataset.s===S.stage));
+  const ns=$("nextStage");
+  if(S.stage==="practice"&&r===total){ns.hidden=false;ns.innerHTML='<span>全カードの音読が完了しました。</span><button class="btn mini" data-go="master">習得へ進む →</button>';}
+  else if(S.stage==="master"&&d>=Math.ceil(total*0.8)){ns.hidden=false;ns.innerHTML='<span>8割以上「言えた」になりました。</span><button class="btn mini" data-go="mock">模擬面接へ →</button>';}
+  else ns.hidden=true;
+}
+
+function renderControls(){
+  const mock=S.stage==="mock";
+  $("ctrlRow").hidden=mock; $("cats").hidden=mock||S.sub!=="qa"; $("nav").hidden=mock;
+  document.querySelectorAll("#subSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sub===S.sub));
+  document.querySelectorAll("#rateSeg button").forEach(b=>b.setAttribute("aria-pressed",+b.dataset.rate===S.rate));
+  document.querySelectorAll("#cats .chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===S.cat));
+  $("guide").textContent=GUIDE[S.stage];
+}
+
+function render(){
+  clearInterval(timerId); renderControls(); updateStages();
+  if(S.stage==="mock")return renderMock();
+  const L=items(); if(S.i>=L.length)S.i=0; if(S.i<0)S.i=L.length-1;
+  const it=L[S.i]; const ph=it.kind==="phrase";
+  const qEn=ph?it.trigger:it.q, aEn=ph?it.en:it.a, aJp=ph?it.jp:it.aj;
+  const st=S.done[it.key];
+  const stTag=st==="ok"?'<span class="tag ok">言えた</span>':st==="again"?'<span class="tag todo">もう一度</span>':"";
+  const head=`<div class="meta"><span class="tag ${it.todo?"todo":""}">${ph?(it.added?"追加フレーズ":"基本フレーズ"):esc(it.c)}${it.todo?"・確認後に完成":""}</span>${stTag}</div>`;
+  const qSpeak=()=>speak(qEn,ph&&it.fast?1.35:S.rate);
+  if(S.stage==="practice"){
+    const n=S.read[it.key]||0;
+    $("card").innerHTML=head+`
+    <div class="step first"><h3><b>1</b>${ph?"場面":"質問"}</h3>
+      ${ph?`<div class="jp">場面：${esc(it.sit)}</div>`:""}
+      <div class="en">${esc(qEn)}</div>${ph?"":`<div class="jp">${esc(it.qj)}</div>`}
+      <div class="row"><button class="btn" id="playQ">▶ ${ph?"面接官の発言":"質問"}を聞く</button></div></div>
+    <div class="step"><h3><b>2</b>お手本をまねして音読</h3>
+      <div class="en">${esc(aEn)}</div><div class="jp">${esc(aJp)}</div>
+      <div class="row"><button class="btn primary" id="playA">▶ お手本を聞く</button><button class="btn" id="readBtn">音読した</button>
+      <span class="dots" aria-label="音読 ${n}/3回">${[0,1,2].map(k=>`<i class="${k<n?"on":""}"></i>`).join("")}</span></div></div>`;
+    $("playQ").onclick=qSpeak; $("playA").onclick=()=>speak(aEn);
+    $("readBtn").onclick=()=>{S.read[it.key]=Math.min(3,(S.read[it.key]||0)+1);save();if(S.read[it.key]>=3)S.i++;render();};
+  }else{
+    $("card").innerHTML=head+`
+    <div class="step first"><h3><b>1</b>英文を見ずに聞く</h3>
+      ${ph?`<div class="jp">場面：${esc(it.sit)}</div>`:""}
+      <div class="row"><button class="btn primary" id="playQ">▶ 聞く</button><button class="btn" id="showQ">英文を表示</button>${ph?"":'<button class="btn" id="showQj">日本語</button>'}</div>
+      <div class="en" id="qText" hidden>${esc(qEn)}</div>${ph?"":`<div class="jp" id="qjText" hidden>${esc(it.qj)}</div>`}</div>
+    <div class="step"><h3><b>2</b>声に出して答える</h3>
+      ${ph?`<div class="jp">言いたいこと：${esc(it.jp)}</div>`:""}
+      <div class="row"><button class="btn" id="talk">答える(${ph?10:40}秒)</button><span class="timer" id="tm"></span>${ph?"":'<button class="btn" id="hint">ヒント</button>'}</div>
+      ${ph?"":`<ul class="keys" id="keys" hidden>${it.k.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`}</div>
+    <div class="step"><h3><b>3</b>お手本で確認</h3>
+      <button class="btn" id="showA">お手本を見る</button>
+      <div class="reveal" id="ans" hidden><div class="en">${esc(aEn)}</div>${ph?"":`<div class="jp">${esc(aJp)}</div>`}<div class="row"><button class="btn" id="playA">▶ お手本を聞く</button></div></div></div>
+    <div class="rate"><button class="btn again" id="again">もう一度</button><button class="btn ok" id="ok">言えた</button></div>`;
+    $("playQ").onclick=qSpeak;
+    $("showQ").onclick=()=>{$("qText").hidden=!$("qText").hidden;};
+    if(!ph){$("showQj").onclick=()=>{$("qjText").hidden=!$("qjText").hidden;};$("hint").onclick=()=>{$("keys").hidden=!$("keys").hidden;};}
+    $("talk").onclick=()=>startTimer(ph?10:40);
+    $("showA").onclick=()=>{$("ans").hidden=false;};
+    $("playA").onclick=()=>speak(aEn);
+    $("ok").onclick=()=>{S.done[it.key]="ok";save();S.i++;render();};
+    $("again").onclick=()=>{S.done[it.key]="again";save();S.i++;render();};
+  }
+  const ok=L.filter(x=>S.done[x.key]==="ok").length;
+  $("prog").textContent=`${S.i+1} / ${L.length}`+(S.stage==="master"?`　言えた ${ok}`:"");
+}
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function startMock(n){
+  const pool=QA.map((q,i)=>i).filter(i=>!QA[i].todo&&i!==0);
+  const pick=[0,...shuffle(pool).slice(0,n==="all"?pool.length:n-1)];
+  S.mock={list:pick,pos:0,peek:{},res:{}}; save(); render(); speak(QA[0].q,1.05);
+}
+function renderMock(){
+  const m=S.mock; const card=$("card");
+  if(!m){
+    card.innerHTML=`<div class="step first"><h3><b>▶</b>模擬面接を始める</h3>
+      <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。研修計画(Q21)は未完成のため出題しません。</div>
+      <div class="row"><button class="btn primary" data-n="5">5問</button><button class="btn primary" data-n="10">10問</button><button class="btn" data-n="all">全問</button></div></div>`;
+    card.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>startMock(b.dataset.n==="all"?"all":+b.dataset.n));
+    return;
+  }
+  if(m.pos>=m.list.length){
+    const peeks=Object.keys(m.peek).length;
+    card.innerHTML=`<div class="meta"><span class="big">面接おつかれさまでした</span><span class="qno">${m.list.length}問・英文を見た ${peeks}問</span></div>
+      <div class="jp">お手本と比べて自己評価してください。「もう一度」にした問題は習得段階で復習できます。</div>
+      <div class="review">${m.list.map(i=>{const q=QA[i],k="q"+i,v=m.res[k];return `<div class="ritem">
+        <div class="en">${esc(q.q)}</div><div class="jp">${esc(q.qj)}${m.peek[i]?"(英文を見た)":""}</div>
+        <div class="reveal"><div class="en">${esc(q.a)}</div></div>
+        <div class="row"><button class="btn mini" data-play="${i}">▶ お手本</button><button class="btn mini ok" data-r="ok" data-k="${k}" aria-pressed="${v==="ok"}">言えた</button><button class="btn mini again" data-r="again" data-k="${k}" aria-pressed="${v==="again"}">もう一度</button></div></div>`;}).join("")}</div>
+      <div class="row"><button class="btn primary" id="finish">結果を保存して終了</button><button class="btn" id="retry">もう一度面接する</button></div>`;
+    card.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>speak(QA[+b.dataset.play].a));
+    card.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{m.res[b.dataset.k]=b.dataset.r;save();renderMock();});
+    const fin=()=>{Object.entries(m.res).forEach(([k,v])=>S.done[k]=v);S.mocks++;};
+    $("finish").onclick=()=>{fin();S.mock=null;S.stage="master";S.sub="qa";S.cat="すべて";S.i=0;save();render();};
+    $("retry").onclick=()=>{fin();S.mock=null;save();render();};
+    return;
+  }
+  const i=m.list[m.pos], q=QA[i];
+  card.innerHTML=`<div class="meta"><span class="qno">質問 ${m.pos+1} / ${m.list.length}</span><span class="tag">面接中</span></div>
+    <div class="step first"><h3><b>1</b>質問を聞く</h3>
+      <div class="row"><button class="btn" id="again">▶ もう一度聞く</button><button class="btn" id="slow">▶ ゆっくり聞く</button></div>
+      <div class="jp">聞き返す前に、お助けフレーズを声に出しましょう。</div></div>
+    <div class="step"><h3><b>2</b>答える</h3>
+      <div class="row"><button class="btn primary" id="talk">回答開始(45秒)</button><span class="timer" id="tm"></span></div></div>
+    <div class="step"><h3><b>3</b>どうしても聞き取れない時</h3>
+      <button class="btn mini" id="peek">英文を見る(記録されます)</button>
+      <div class="en" id="qText" hidden>${esc(q.q)}</div></div>
+    <button class="btn primary" id="nextQ">${m.pos+1<m.list.length?"次の質問へ →":"面接を終える"}</button>`;
+  $("again").onclick=()=>speak(q.q,1.05);
+  $("slow").onclick=()=>speak(q.q,0.75);
+  $("talk").onclick=()=>startTimer(45);
+  $("peek").onclick=()=>{m.peek[i]=1;save();$("qText").hidden=false;};
+  $("nextQ").onclick=()=>{m.pos++;save();render();if(m.pos<m.list.length)speak(QA[m.list[m.pos]].q,1.05);};
+}
+
+$("cats").innerHTML=CATS.map(c=>`<button class="chip" data-c="${c}">${c}</button>`).join("");
+$("cats").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;S.cat=b.dataset.c;S.i=0;save();render();};
+document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{S.stage=b.dataset.s;S.i=0;save();render();});
+$("nextStage").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;S.stage=b.dataset.go;S.i=0;save();render();};
+$("subSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.sub=b.dataset.sub;S.i=0;save();render();};
+$("rateSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.rate=+b.dataset.rate;save();render();};
+$("prev").onclick=()=>{S.i--;render();};
+$("next").onclick=()=>{S.i++;render();};
+render();
+</script>
   </body>
 </html>
