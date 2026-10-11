@@ -87,6 +87,11 @@ header p{margin:2px 0 0;color:var(--muted);font-size:.85rem}
 .big{font-size:1.05rem;font-weight:700}
 .word{font-family:var(--f-en);font-size:1.45rem;font-weight:600;line-height:1.3}
 .tip{font-size:.85rem;background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px}
+.lead{background:var(--bg);border-radius:10px;padding:10px 12px;display:grid;gap:10px}
+.lq{display:grid;gap:4px}
+.lq + .lq{border-top:1px solid var(--line);padding-top:10px}
+.used{display:grid;gap:2px;border-left:3px solid var(--line);padding-left:10px}
+mark{background:var(--warn-soft);color:inherit;border-radius:3px;padding:0 2px}
 .review{display:grid;gap:10px}
 .ritem{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
 .ritem:first-child{border-top:0;padding-top:0}
@@ -218,6 +223,24 @@ const VOCAB=[
  {c:"頻出フレーズ",w:"I am ～ing now",m:"今～している",ex:"I am studying English with textbooks now.",exj:"今はテキストで英語を勉強しています。"}
 ];
 const VCATS=["すべて","重要ワード","頻出フレーズ"];
+// 回答の中から探すための検索パターン(既定は「～」の前の部分)
+const VRE={"fillet fish":"fillet(ing)? fish","From ～ to ～, I ～":"From \\d{4} to \\d{4}","Since ～, I have ～":"Since \\w+ \\d{4}, I have","I am ～ing now":"I am \\w+ing","If ～, I will ～":"\\bIf\\b"};
+// 今の回答には出てこないが、この質問の答えで使える型
+const VLEAD={"trainee":{q:"Which program are you applying for?",qj:"どのプログラムに申し込んでいますか？"},"For example, ～":{ref:"What is your strength?"},"I have experience in ～":{ref:"How does your past experience connect to this training?"},"That is why ～":{ref:"Have you made sushi before?"}};
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+function leads(v){
+  const re=new RegExp(VRE[v.w]||reEsc(v.w.split("～")[0].trim().replace(/,$/,"")),"i");
+  const out=[];
+  for(const q of QA){if(out.length>=2)break;const s=q.a.split(/(?<=[.!?])\s+/).find(x=>re.test(x));if(s)out.push({q:q.q,qj:q.qj,sent:s,re});}
+  if(!out.length&&VLEAD[v.w]){const l=VLEAD[v.w];const r=l.ref?QA.find(q=>q.q===l.ref):l;if(r)out.push({q:r.q,qj:r.qj,sent:null});}
+  return out;
+}
+const hl=(s,re)=>esc(s).replace(new RegExp(re.source,"i"),m=>`<mark>${m}</mark>`);
+const usedHTML=l=>l.sent?`<div class="used"><span class="label">あなたの回答では</span><div class="en">${hl(l.sent,l.re)}</div></div>`:"";
+function leadHTML(ls,withSent){
+  if(!ls.length)return "";
+  return `<div class="lead"><span class="label">${ls[0].sent?"例えばこの質問のとき":"この質問の答えに使えます"}</span>${ls.map((l,i)=>`<div class="lq"><div class="en">${esc(l.q)}</div><div class="jp">${esc(l.qj)}</div><div class="row"><button class="btn mini" data-lq="${esc(l.q)}">▶ 質問を聞く</button></div>${withSent?usedHTML(l):""}</div>`).join("")}</div>`;
+}
 const GUIDE={
  practice:"STEP 1 練習：英文を見ながらお手本を聞き、まねして3回音読します(シャドーイング)。全部終わったら習得へ。",
  master:"STEP 2 習得：英文を見ずに質問を聞き、ヒントの要点だけで答えます。お手本で確認して「言えた」を目指します。",
@@ -373,9 +396,10 @@ function renderVocab(it,L){
   const head=`<div class="meta"><span class="tag">${esc(it.c)}</span>${stTag}</div>`;
   const tip=it.tip?`<div class="tip">${esc(it.tip)}</div>`:"";
   const say=t=>t.replace(/～/g,"");
+  const ls=leads(it);
   if(S.stage==="practice"){
     const n=S.read[it.key]||0;
-    $("card").innerHTML=head+`
+    $("card").innerHTML=head+leadHTML(ls,true)+`
     <div class="step first"><h3><b>1</b>${it.c==="重要ワード"?"単語":"型"}</h3>
       <div class="word">${esc(it.w)}</div><div class="jp">${esc(it.m)}</div>${tip}
       <div class="row"><button class="btn" id="playW">▶ 聞く</button></div></div>
@@ -387,11 +411,11 @@ function renderVocab(it,L){
     $("playE").onclick=()=>speak(it.ex);
     $("readBtn").onclick=()=>{S.read[it.key]=Math.min(3,(S.read[it.key]||0)+1);save();if(S.read[it.key]>=3)S.i++;render();};
   }else{
-    $("card").innerHTML=head+`
+    $("card").innerHTML=head+leadHTML(ls,false)+`
     <div class="step first"><h3><b>1</b>日本語 → 英語で言う</h3>
       <div class="big">${esc(it.m)}</div>
       <div class="row"><button class="btn" id="showW">答えを見る</button></div>
-      <div class="reveal" id="ansW" hidden><div class="word">${esc(it.w)}</div>${tip}<div class="row"><button class="btn" id="playW">▶ 聞く</button></div></div></div>
+      <div class="reveal" id="ansW" hidden><div class="word">${esc(it.w)}</div>${tip}${ls.map(usedHTML).join("")}<div class="row"><button class="btn" id="playW">▶ 聞く</button></div></div></div>
     <div class="step"><h3><b>2</b>例文ごと言う</h3>
       <div class="jp">${esc(it.exj)}</div>
       <div class="row"><button class="btn" id="talk">言う(10秒)</button><span class="timer" id="tm"></span><button class="btn" id="showE">お手本を見る</button></div>
@@ -408,6 +432,7 @@ function renderVocab(it,L){
   const ok=L.filter(x=>S.done[x.key]==="ok").length;
   $("prog").textContent=`${S.i+1} / ${L.length}`+(S.stage==="master"?`　言えた ${ok}`:"");
 }
+$("card").addEventListener("click",e=>{const b=e.target.closest("[data-lq]");if(b)speak(b.dataset.lq);});
 $("cats").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;if(S.sub==="vocab")S.vcat=b.dataset.c;else S.cat=b.dataset.c;S.i=0;save();render();};
 document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{S.stage=b.dataset.s;S.i=0;save();render();});
 $("nextStage").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;S.stage=b.dataset.go;S.i=0;save();render();};
