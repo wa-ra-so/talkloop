@@ -236,7 +236,7 @@ function leads(v){
   return out;
 }
 const hl=(s,re)=>esc(s).replace(new RegExp(re.source,"i"),m=>`<mark>${m}</mark>`);
-const usedHTML=l=>l.sent?`<div class="used"><span class="label">あなたの回答では</span><div class="en">${hl(l.sent,l.re)}</div></div>`:"";
+const usedHTML=l=>l.sent?`<div class="used"><span class="label">あなたの回答では</span><div class="en">${hl(l.sent,l.re)}</div><div class="row"><button class="btn mini" data-lq="${esc(l.sent)}">▶ 回答の文を聞く</button></div></div>`:"";
 function leadHTML(ls,withSent){
   if(!ls.length)return "";
   return `<div class="lead"><span class="label">${ls[0].sent?"例えばこの質問のとき":"この質問の答えに使えます"}</span>${ls.map((l,i)=>`<div class="lq"><div class="en">${esc(l.q)}</div><div class="jp">${esc(l.qj)}</div><div class="row"><button class="btn mini" data-lq="${esc(l.q)}">▶ 質問を聞く</button></div>${withSent?usedHTML(l):""}</div>`).join("")}</div>`;
