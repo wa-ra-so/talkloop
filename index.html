@@ -96,6 +96,21 @@ mark{background:var(--warn-soft);color:inherit;border-radius:3px;padding:0 2px}
 .ritem{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
 .ritem:first-child{border-top:0;padding-top:0}
 .mini{font-size:.8rem;padding:4px 10px}
+/* 対話モード */
+.mode{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px}
+.mode h4{margin:0;font-size:.95rem}
+.status{display:flex;align-items:center;gap:10px;font-weight:700;font-size:.92rem}
+.mic{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none}
+.mic.on{background:var(--ok)}
+.mic.speak{background:var(--accent)}
+.live{min-height:4.5em;background:var(--bg);border-radius:10px;padding:12px;font-family:var(--f-en);font-size:1.02rem;line-height:1.6;overflow-wrap:anywhere}
+.live.empty{color:var(--muted);font-family:var(--f-body);font-size:.86rem}
+.kw{display:flex;flex-wrap:wrap;gap:4px}
+.kw span{font-size:.74rem;padding:1px 7px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.kw span.hit{background:var(--ok-soft);color:var(--ok);font-weight:700}
+.stats{font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: no-preference){.mic.on{animation:pulse 1.2s ease-in-out infinite}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 var(--ok-soft)}50%{box-shadow:0 0 0 7px var(--ok-soft)}}
 @media (prefers-reduced-motion: no-preference){.reveal{animation:fade .2s ease}}
 @keyframes fade{from{opacity:.4}to{opacity:1}}
 </style>
@@ -244,11 +259,11 @@ function leadHTML(ls,withSent){
 const GUIDE={
  practice:"STEP 1 練習：英文を見ながらお手本を聞き、まねして3回音読します(シャドーイング)。全部終わったら習得へ。",
  master:"STEP 2 習得：英文を見ずに質問を聞き、ヒントの要点だけで答えます。お手本で確認して「言えた」を目指します。",
- mock:"STEP 3 模擬面接：本番の速度で質問が続けて流れます。英文もヒントもなし。聞き取れなければ、お助けフレーズを声に出してから「もう一度聞く」を押してください。"
+ mock:"STEP 3 模擬面接：本番の速度で質問が続けて流れます。英文もヒントもなし。対話モードでは声で答えると自動で次へ進み、聞き取れなければお助けフレーズを英語で言えば面接官が繰り返します。"
 };
 
 const ALL=[...PHRASES.map((p,i)=>({...p,key:"p"+i,kind:"phrase"})),...QA.map((q,i)=>({...q,key:"q"+i,kind:"qa"})),...VOCAB.map((v,i)=>({...v,key:"v"+i,kind:"vocab"}))];
-const S={stage:"practice",sub:"qa",i:0,cat:"すべて",vcat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
+const S={sil:5,stage:"practice",sub:"qa",i:0,cat:"すべて",vcat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
 try{Object.assign(S,JSON.parse(localStorage.getItem("iena-drill2")||"{}"));}catch(e){}
 function save(){try{localStorage.setItem("iena-drill2",JSON.stringify(S));}catch(e){}}
 
@@ -342,20 +357,42 @@ function render(){
 }
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function startMock(n){
+function startMock(n,mode){
   const pool=QA.map((q,i)=>i).filter(i=>!QA[i].todo&&i!==0);
   const pick=[0,...shuffle(pool).slice(0,n==="all"?pool.length:n-1)];
+  if(mode==="talk"){
+    S.mock={mode:"talk",list:pick,pos:0,peek:{},res:{},ans:{},helps:{}}; save();
+    primeTTS(); // iOS: 最初の読み上げはタップの中で行う必要がある
+    const go=()=>{render();talkBegin();};
+    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+      navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{s.getTracks().forEach(t=>t.stop());go();})
+        .catch(()=>{T.phase="needtap";T.note="マイクの使用が許可されていません。ブラウザの設定でマイクを許可してから「タップして回答する」を押してください。";render();});
+    }else go();
+    return;
+  }
   S.mock={list:pick,pos:0,peek:{},res:{}}; save(); render(); speak(QA[0].q,1.05);
 }
 function renderMock(){
   const m=S.mock; const card=$("card");
   if(!m){
+    const talkOK=hasSR&&hasTTS;
     card.innerHTML=`<div class="step first"><h3><b>▶</b>模擬面接を始める</h3>
-      <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。研修計画(Q21)は未完成のため出題しません。</div>
-      <div class="row"><button class="btn primary" data-n="5">5問</button><button class="btn primary" data-n="10">10問</button><button class="btn" data-n="all">全問</button></div></div>`;
+      <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。研修計画(Q21)は未完成のため出題しません。</div></div>
+      <div class="mode"><h4>🎤 対話モード(おすすめ)</h4>
+        <div class="jp">面接官が質問を読み上げ、あなたが英語で声に出して答えると、決めた秒数だけ黙ったところで自動的に次の質問へ進みます。聞き取れない時は英語で聞き返せば、面接官が繰り返します。回答は文字で記録され、最後にお手本と比べられます。</div>
+        ${talkOK?`<div class="row"><span class="label">答え終わりの待ち時間</span><div class="seg" id="silSeg">${[3,5,8].map(x=>`<button data-sil="${x}" aria-pressed="${(S.sil||5)===x}">${x}秒</button>`).join("")}</div></div><div class="row"><button class="btn primary" data-t="5">5問</button><button class="btn primary" data-t="10">10問</button><button class="btn" data-t="all">全問</button></div>`
+          :`<p class="note">このブラウザは音声認識に対応していません。AndroidやPCのChrome、またはiPhoneのSafariで開いてください。</p>`}
+      </div>
+      <div class="mode"><h4>手動モード</h4>
+        <div class="jp">ボタンで質問を進めます。声は記録しません。</div>
+        <div class="row"><button class="btn" data-n="5">5問</button><button class="btn" data-n="10">10問</button><button class="btn" data-n="all">全問</button></div>
+      </div>`;
     card.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>startMock(b.dataset.n==="all"?"all":+b.dataset.n));
+    card.querySelectorAll("[data-sil]").forEach(b=>b.onclick=()=>{S.sil=+b.dataset.sil;save();renderMock();});
+    card.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>startMock(b.dataset.t==="all"?"all":+b.dataset.t,"talk"));
     return;
   }
+  if(m.mode==="talk")return renderTalk();
   if(m.pos>=m.list.length){
     const peeks=Object.keys(m.peek).length;
     card.innerHTML=`<div class="meta"><span class="big">面接おつかれさまでした</span><span class="qno">${m.list.length}問・英文を見た ${peeks}問</span></div>
@@ -389,6 +426,161 @@ function renderMock(){
   $("peek").onclick=()=>{m.peek[i]=1;save();$("qText").hidden=false;};
   $("nextQ").onclick=()=>{m.pos++;save();render();if(m.pos<m.list.length)speak(QA[m.list[m.pos]].q,1.05);};
 }
+
+// ===== 対話モード：面接官が質問を読み上げ → 声の回答を認識 → 沈黙で次の質問へ =====
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const hasSR=!!SR;
+const ACKS=["Thank you.","I see.","Okay, thank you.","Got it.","All right."];
+const SIL_HELP=1200,MAX_ANS=90000;
+const silMs=()=>(S.sil||5)*1000+(T.think?3000:0);
+const HELP_JP={slow:"ゆっくり",again:"もう一度",simple:"わかりやすく",think:"考える時間",mean:"意味の確認",btn:"ボタンで聞き直し"};
+const STOPW=new Set("the a an and or but so to of in on at for with from by as is am are was were be been i my me we our you your it its this that these those will would can could do did have has had not no also very there they them their he his she her who what when where why how which then than just into about after before because if want".split(" "));
+const T={phase:"idle",rec:null,committed:"",session:"",lastHeard:0,started:0,think:false,tick:null,note:"",gen:0,restarts:[]};
+
+function primeTTS(){if(!hasTTS)return;try{const u=new SpeechSynthesisUtterance(" ");u.volume=0;speechSynthesis.speak(u);}catch(e){}}
+// 読み上げが終わったら cb。onend が来ない端末向けに長さからの保険タイマーも置く
+function speakThen(text,rate,cb){
+  const g=T.gen;let done=false,fb;
+  const fin=()=>{if(done||g!==T.gen)return;done=true;clearTimeout(fb);setTimeout(()=>{if(g===T.gen)cb();},250);};
+  fb=setTimeout(fin,Math.max(2500,text.split(/\s+/).length*520/rate+1500));
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang="en-US";u.rate=rate;if(voice)u.voice=voice;u.onend=fin;u.onerror=fin;speechSynthesis.speak(u);}catch(e){fin();}
+}
+const talkText=()=>(T.committed+" "+T.session).trim();
+function stopRec(){clearInterval(T.tick);if(T.rec){T.rec.onend=null;T.rec.onresult=null;T.rec.onerror=null;try{T.rec.abort();}catch(e){}T.rec=null;}}
+function stopTalk(){T.gen++;stopRec();try{speechSynthesis.cancel();}catch(e){}if(T.phase!=="needtap")T.phase="idle";}
+function needTap(msg){stopRec();T.phase="needtap";T.note=msg||"";renderTalk();}
+
+function talkBegin(){ask("Hello, thank you for joining us today. Let's begin. ");}
+function ask(prefix,rate){
+  stopTalk();const m=S.mock,q=QA[m.list[m.pos]];
+  T.phase="asking";T.note="";T.think=false;T.committed="";T.session="";renderTalk();
+  speakThen((prefix||"")+q.q,rate||1.05,listen);
+}
+function listen(){
+  stopRec();const g=T.gen;
+  T.phase="listening";T.committed="";T.session="";T.started=Date.now();T.lastHeard=0;T.restarts=[];
+  renderTalk();startRec(g);
+  T.tick=setInterval(()=>tickTalk(g),300);
+}
+function startRec(g){
+  const now=Date.now();T.restarts=T.restarts.filter(t=>now-t<3000);T.restarts.push(now);
+  if(T.restarts.length>4)return needTap("音声認識が止まりました。下のボタンを押して回答を続けてください。");
+  let r;try{r=new SR();}catch(e){return needTap("音声認識を開始できませんでした。");}
+  r.lang="en-US";r.continuous=true;r.interimResults=true;r.maxAlternatives=1;
+  r.onresult=e=>{if(g!==T.gen)return;let s="";for(let k=0;k<e.results.length;k++)s+=e.results[k][0].transcript+" ";T.session=s.trim();if(T.session)T.lastHeard=Date.now();paintLive();};
+  r.onerror=e=>{if(g!==T.gen)return;
+    if(e.error==="not-allowed"||e.error==="service-not-allowed")needTap("マイクの使用が許可されていません。ブラウザの設定でマイクを許可してから、下のボタンを押してください。");
+    else if(e.error==="network")needTap("音声認識がネットワークに接続できませんでした。通信を確認してから、下のボタンを押してください。");};
+  // 端末によっては無音で認識が勝手に止まるので、それまでの文字を確定して再開する
+  r.onend=()=>{if(g!==T.gen||T.phase!=="listening")return;T.committed=talkText();T.session="";startRec(g);};
+  T.rec=r;try{r.start();}catch(e){needTap("音声認識を開始できませんでした。下のボタンを押してください。");}
+}
+function helpOf(t){
+  const s=t.toLowerCase();if(!s||s.split(/\s+/).length>14)return null;
+  if(/slow/.test(s))return "slow";
+  if(/last part|(say|said) (that|it) again|repeat|pardon|come again|one more time|once more/.test(s))return "again";
+  if(/(don'?t|do not) understand|simpler|simple way|explain (that|it)\b/.test(s))return "simple";
+  if(/let me think|a moment/.test(s))return "think";
+  if(/^do you mean\b/.test(s))return "mean";
+  return null;
+}
+function tickTalk(g){
+  if(g!==T.gen||T.phase!=="listening")return;
+  const now=Date.now(),txt=talkText(),quiet=now-T.lastHeard;
+  if(T.lastHeard){
+    const h=helpOf(txt);
+    if(h&&quiet>SIL_HELP)return onHelp(h);
+    if(!h&&quiet>silMs())return finishAnswer();
+  }
+  if(now-T.started>MAX_ANS)return finishAnswer();
+  paintLive();
+}
+function logHelp(h){const m=S.mock,i=m.list[m.pos];(m.helps[i]=m.helps[i]||[]).push(h);save();}
+function onHelp(h){
+  logHelp(h);const q=QA[S.mock.list[S.mock.pos]];
+  if(h==="slow")return ask("Sure. ",0.75);
+  if(h==="again")return ask("Sure. ");
+  if(h==="simple")return ask("Let me say it again slowly. ",0.75);
+  stopTalk();T.phase="asking";T.note="";
+  if(h==="think")T.think=true;
+  renderTalk();
+  speakThen(h==="think"?"Sure, take your time.":"Yes, that's right. "+q.q,1.05,listen);
+}
+function finishAnswer(){
+  const m=S.mock,i=m.list[m.pos],txt=talkText();
+  m.ans[i]={t:txt,sec:Math.max(0,Math.round(((T.lastHeard||Date.now())-T.started)/1000))};
+  m.pos++;save();
+  if(m.pos<m.list.length)return ask(ACKS[Math.floor(Math.random()*ACKS.length)]+" ");
+  stopTalk();T.phase="closing";renderTalk();
+  speakThen("That's all for today. Thank you for your time.",1.05,()=>{T.phase="idle";});
+}
+function paintLive(){
+  const el=$("live");if(!el)return;const t=talkText();
+  const waited=T.phase==="listening"&&!T.lastHeard&&Date.now()-T.started>20000;
+  el.className="live"+(t?"":" empty");
+  el.textContent=t||(T.phase==="listening"?(waited?"まだ声が届いていません。マイクに向かって英語で答えてください。":"(あなたの声がここに文字で表示されます)"):T.phase==="asking"?"(質問のあとに答えてください)":"");
+  const tm=$("tm");if(tm)tm.textContent=T.phase==="listening"?Math.floor((Date.now()-T.started)/1000)+"秒":"";
+}
+function renderTalk(){
+  if(S.stage!=="mock")return;
+  const m=S.mock,card=$("card");if(!m||m.mode!=="talk")return;
+  if(m.pos>=m.list.length)return renderTalkReview();
+  const i=m.list[m.pos],q=QA[i],ph=T.phase;
+  const st={asking:["speak","面接官が質問しています…"],listening:["on","聞いています。英語でどうぞ"],needtap:["","ボタンを押して回答してください"]}[ph]||["","一時停止中"];
+  const running=ph==="asking"||ph==="listening";
+  const fresh=m.pos===0&&!Object.keys(m.ans).length;
+  card.innerHTML=`<div class="meta"><span class="qno">質問 ${m.pos+1} / ${m.list.length}</span><span class="tag">対話モード</span></div>
+    <div class="status"><span class="mic ${st[0]}"></span><span>${st[1]}</span><span class="timer" id="tm"></span></div>
+    ${T.note?`<p class="note">${esc(T.note)}</p>`:""}
+    <div class="live empty" id="live"></div>
+    ${running||ph==="needtap"
+      ?`<div class="row">${ph==="needtap"?'<button class="btn primary" id="tap">🎤 タップして回答する</button>':""}<button class="btn ${ph==="listening"?"primary":""}" id="done" ${ph==="asking"?"disabled":""}>回答を終える →</button><button class="btn" id="rep">▶ もう一度聞く</button><button class="btn" id="slowB">▶ ゆっくり</button></div>`
+      :`<div class="row"><button class="btn primary" id="resume">${fresh?"▶ 面接を始める":"▶ 再開する(この質問から)"}</button></div>`}
+    <div class="jp">答え終わって${S.sil||5}秒黙ると次の質問に進みます(「回答を終える」ですぐ進むこともできます)。聞き取れない時は「Could you say that again?」「Could you speak more slowly?」と英語で言えば、面接官が繰り返します。</div>
+    <div class="row"><button class="btn mini" id="peek">英文を見る(記録されます)</button>${running?'<button class="btn mini" id="pause">一時停止</button>':""}<button class="btn mini" id="quit">中断する</button></div>
+    <div class="en" id="qText" ${m.peek[i]?"":"hidden"}>${esc(q.q)}</div>`;
+  const on=(id,f)=>{const b=$(id);if(b)b.onclick=f;};
+  on("tap",listen);
+  on("done",finishAnswer);
+  on("rep",()=>{logHelp("btn");ask("");});
+  on("slowB",()=>{logHelp("btn");ask("",0.75);});
+  on("resume",()=>{primeTTS();T.note="";fresh?talkBegin():ask("");});
+  on("pause",()=>{stopTalk();T.phase="idle";renderTalk();});
+  on("peek",()=>{m.peek[i]=1;save();$("qText").hidden=false;});
+  on("quit",()=>{if(!confirm("模擬面接を中断しますか？ここまでの回答は保存されません。"))return;stopTalk();T.phase="idle";S.mock=null;save();render();});
+  paintLive();
+}
+function keyWords(a){const seen=new Set();return a.replace(/[^A-Za-z' ]/g," ").split(/\s+/).filter(w=>{const l=w.toLowerCase();if(l.length<4||STOPW.has(l)||seen.has(l))return false;seen.add(l);return true;});}
+const stem=w=>{w=w.toLowerCase();return w.slice(0,w.length<=5?4:5);};
+function coverage(a,t){const ks=keyWords(a);const said=new Set(t.toLowerCase().replace(/[^a-z' ]/g," ").split(/\s+/).filter(Boolean).map(stem));return {ks,hit:ks.filter(k=>said.has(stem(k)))};}
+function renderTalkReview(){
+  const m=S.mock,card=$("card");let words=0,helps=0;
+  const rows=m.list.map(i=>{
+    const q=QA[i],k="q"+i,v=m.res[k],a=m.ans[i]||{t:"",sec:0},hs=m.helps[i]||[];
+    const wc=a.t?a.t.split(/\s+/).length:0;words+=wc;helps+=hs.length;
+    const cv=coverage(q.a,a.t);
+    return `<div class="ritem">
+      <div class="en">${esc(q.q)}</div><div class="jp">${esc(q.qj)}${m.peek[i]?"(英文を見た)":""}</div>
+      <span class="label">あなたの回答(認識結果)</span>
+      <div class="live ${a.t?"":"empty"}">${a.t?esc(a.t):"(声が認識されませんでした)"}</div>
+      <div class="stats">${wc}語・${a.sec}秒${wc&&wc<12?"・短め":""}${hs.length?"・聞き直し: "+hs.map(h=>HELP_JP[h]).join("、"):""}</div>
+      <div class="stats">お手本の重要語 ${cv.hit.length}/${cv.ks.length} 使えた</div>
+      <div class="kw">${cv.ks.map(w=>`<span class="${cv.hit.includes(w)?"hit":""}">${esc(w)}</span>`).join("")}</div>
+      <div class="reveal"><span class="label">お手本</span><div class="en">${esc(q.a)}</div></div>
+      <div class="row"><button class="btn mini" data-play="${i}">▶ お手本</button><button class="btn mini ok" data-r="ok" data-k="${k}" aria-pressed="${v==="ok"}">言えた</button><button class="btn mini again" data-r="again" data-k="${k}" aria-pressed="${v==="again"}">もう一度</button></div></div>`;});
+  const n=m.list.length;
+  card.innerHTML=`<div class="meta"><span class="big">面接おつかれさまでした</span><span class="qno">${n}問</span></div>
+    <div class="stats">平均 ${Math.round(words/n)}語・聞き直し ${helps}回・英文を見た ${Object.keys(m.peek).length}問</div>
+    <div class="jp">自分の回答とお手本を比べて自己評価してください。認識結果は発音の目安で、採点ではありません(日本語なまりで違う単語になることがあります)。緑の単語はお手本の重要語のうち、あなたの回答に出てきたものです。</div>
+    <div class="review">${rows.join("")}</div>
+    <div class="row"><button class="btn primary" id="finish">結果を保存して終了</button><button class="btn" id="retry">もう一度面接する</button></div>`;
+  card.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>speak(QA[+b.dataset.play].a));
+  card.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{m.res[b.dataset.k]=b.dataset.r;save();renderTalkReview();});
+  const fin=()=>{stopTalk();Object.entries(m.res).forEach(([k,v])=>S.done[k]=v);S.mocks++;};
+  $("finish").onclick=()=>{fin();S.mock=null;S.stage="master";S.sub="qa";S.cat="すべて";S.i=0;save();render();};
+  $("retry").onclick=()=>{fin();S.mock=null;save();render();};
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&(T.phase==="asking"||T.phase==="listening")){stopTalk();T.phase="idle";renderTalk();}});
 
 function renderVocab(it,L){
   const st=S.done[it.key];
@@ -434,7 +626,7 @@ function renderVocab(it,L){
 }
 $("card").addEventListener("click",e=>{const b=e.target.closest("[data-lq]");if(b)speak(b.dataset.lq);});
 $("cats").onclick=e=>{const b=e.target.closest(".chip");if(!b)return;if(S.sub==="vocab")S.vcat=b.dataset.c;else S.cat=b.dataset.c;S.i=0;save();render();};
-document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{S.stage=b.dataset.s;S.i=0;save();render();});
+document.querySelectorAll(".stage").forEach(b=>b.onclick=()=>{stopTalk();T.phase="idle";S.stage=b.dataset.s;S.i=0;save();render();});
 $("nextStage").onclick=e=>{const b=e.target.closest("[data-go]");if(!b)return;S.stage=b.dataset.go;S.i=0;save();render();};
 $("subSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.sub=b.dataset.sub;S.i=0;save();render();};
 $("rateSeg").onclick=e=>{const b=e.target.closest("button");if(!b)return;S.rate=+b.dataset.rate;save();render();};
