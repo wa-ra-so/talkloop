@@ -24,6 +24,7 @@
 
 - 答え終わって決めた秒数(3・5・8秒から選択、初期値5秒)黙ると回答終了とみなし、「Thank you.」などの相づちのあと次の質問を読み上げる
 - 回答中に英語で聞き返すと面接官が反応する:「Could you speak more slowly?」→ゆっくり繰り返す、「Could you say that again?」→繰り返す、「Let me think for a moment.」→待つ、「Do you mean 〜?」→答える
+- 出題は自己紹介のあとランダム。受入先の質問は出さず、半分以上を「人物」カテゴリから出す(手動モードも同じ)
 - 回答は文字で記録し、最後に語数・秒数・聞き直し回数・お手本の重要語をいくつ使えたかを表示する
 - 音声認識はブラウザの Web Speech API(英語)。AndroidやPCのChrome、iPhoneのSafariで動作。Chromeでは音声がGoogleのサーバーで文字にされる
 - 認識結果は発音の目安で、採点ではない

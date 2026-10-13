@@ -358,8 +358,11 @@ function render(){
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function startMock(n,mode){
-  const pool=QA.map((q,i)=>i).filter(i=>!QA[i].todo&&i!==0);
-  const pick=[0,...shuffle(pool).slice(0,n==="all"?pool.length:n-1)];
+  // 受入先の質問は出さない。本番は人柄を問われる想定なので、出題の半分以上を「人物」にする
+  const pool=QA.map((q,i)=>i).filter(i=>!QA[i].todo&&i!==0&&QA[i].c!=="受入先");
+  const person=shuffle(pool.filter(i=>QA[i].c==="人物")),other=shuffle(pool.filter(i=>QA[i].c!=="人物"));
+  const k=n==="all"?pool.length:n-1,np=Math.min(person.length,Math.ceil(k/2));
+  const pick=[0,...shuffle([...person.slice(0,np),...other.slice(0,k-np)])];
   if(mode==="talk"){
     S.mock={mode:"talk",list:pick,pos:0,peek:{},res:{},ans:{},helps:{}}; save();
     primeTTS(); // iOS: 最初の読み上げはタップの中で行う必要がある
@@ -377,7 +380,7 @@ function renderMock(){
   if(!m){
     const talkOK=hasSR&&hasTTS;
     card.innerHTML=`<div class="step first"><h3><b>▶</b>模擬面接を始める</h3>
-      <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。研修計画(Q21)は未完成のため出題しません。</div></div>
+      <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。受入先の質問は出題せず、半分以上が人物(強み・短所・困難な経験など)の質問です。</div></div>
       <div class="mode"><h4>🎤 対話モード(おすすめ)</h4>
         <div class="jp">面接官が質問を読み上げ、あなたが英語で声に出して答えると、決めた秒数だけ黙ったところで自動的に次の質問へ進みます。聞き取れない時は英語で聞き返せば、面接官が繰り返します。回答は文字で記録され、最後にお手本と比べられます。</div>
         ${talkOK?`<div class="row"><span class="label">答え終わりの待ち時間</span><div class="seg" id="silSeg">${[3,5,8].map(x=>`<button data-sil="${x}" aria-pressed="${(S.sil||5)===x}">${x}秒</button>`).join("")}</div></div><div class="row"><button class="btn primary" data-t="5">5問</button><button class="btn primary" data-t="10">10問</button><button class="btn" data-t="all">全問</button></div>`
