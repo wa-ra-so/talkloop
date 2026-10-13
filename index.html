@@ -263,7 +263,7 @@ const GUIDE={
 };
 
 const ALL=[...PHRASES.map((p,i)=>({...p,key:"p"+i,kind:"phrase"})),...QA.map((q,i)=>({...q,key:"q"+i,kind:"qa"})),...VOCAB.map((v,i)=>({...v,key:"v"+i,kind:"vocab"}))];
-const S={stage:"practice",sub:"qa",i:0,cat:"すべて",vcat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
+const S={sil:5,stage:"practice",sub:"qa",i:0,cat:"すべて",vcat:"すべて",rate:0.9,read:{},done:{},mocks:0,mock:null};
 try{Object.assign(S,JSON.parse(localStorage.getItem("iena-drill2")||"{}"));}catch(e){}
 function save(){try{localStorage.setItem("iena-drill2",JSON.stringify(S));}catch(e){}}
 
@@ -379,8 +379,8 @@ function renderMock(){
     card.innerHTML=`<div class="step first"><h3><b>▶</b>模擬面接を始める</h3>
       <div class="jp">最初は必ず自己紹介、その後はランダムに出題されます。速度は本番(1.05)固定です。研修計画(Q21)は未完成のため出題しません。</div></div>
       <div class="mode"><h4>🎤 対話モード(おすすめ)</h4>
-        <div class="jp">面接官が質問を読み上げ、あなたが英語で声に出して答えると、3秒黙ったところで自動的に次の質問へ進みます。聞き取れない時は英語で聞き返せば、面接官が繰り返します。回答は文字で記録され、最後にお手本と比べられます。</div>
-        ${talkOK?`<div class="row"><button class="btn primary" data-t="5">5問</button><button class="btn primary" data-t="10">10問</button><button class="btn" data-t="all">全問</button></div>`
+        <div class="jp">面接官が質問を読み上げ、あなたが英語で声に出して答えると、決めた秒数だけ黙ったところで自動的に次の質問へ進みます。聞き取れない時は英語で聞き返せば、面接官が繰り返します。回答は文字で記録され、最後にお手本と比べられます。</div>
+        ${talkOK?`<div class="row"><span class="label">答え終わりの待ち時間</span><div class="seg" id="silSeg">${[3,5,8].map(x=>`<button data-sil="${x}" aria-pressed="${(S.sil||5)===x}">${x}秒</button>`).join("")}</div></div><div class="row"><button class="btn primary" data-t="5">5問</button><button class="btn primary" data-t="10">10問</button><button class="btn" data-t="all">全問</button></div>`
           :`<p class="note">このブラウザは音声認識に対応していません。AndroidやPCのChrome、またはiPhoneのSafariで開いてください。</p>`}
       </div>
       <div class="mode"><h4>手動モード</h4>
@@ -388,6 +388,7 @@ function renderMock(){
         <div class="row"><button class="btn" data-n="5">5問</button><button class="btn" data-n="10">10問</button><button class="btn" data-n="all">全問</button></div>
       </div>`;
     card.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>startMock(b.dataset.n==="all"?"all":+b.dataset.n));
+    card.querySelectorAll("[data-sil]").forEach(b=>b.onclick=()=>{S.sil=+b.dataset.sil;save();renderMock();});
     card.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>startMock(b.dataset.t==="all"?"all":+b.dataset.t,"talk"));
     return;
   }
@@ -430,7 +431,8 @@ function renderMock(){
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const hasSR=!!SR;
 const ACKS=["Thank you.","I see.","Okay, thank you.","Got it.","All right."];
-const SIL_END=3000,SIL_THINK=5000,SIL_HELP=1200,MAX_ANS=90000;
+const SIL_HELP=1200,MAX_ANS=90000;
+const silMs=()=>(S.sil||5)*1000+(T.think?3000:0);
 const HELP_JP={slow:"ゆっくり",again:"もう一度",simple:"わかりやすく",think:"考える時間",mean:"意味の確認",btn:"ボタンで聞き直し"};
 const STOPW=new Set("the a an and or but so to of in on at for with from by as is am are was were be been i my me we our you your it its this that these those will would can could do did have has had not no also very there they them their he his she her who what when where why how which then than just into about after before because if want".split(" "));
 const T={phase:"idle",rec:null,committed:"",session:"",lastHeard:0,started:0,think:false,tick:null,note:"",gen:0,restarts:[]};
@@ -488,7 +490,7 @@ function tickTalk(g){
   if(T.lastHeard){
     const h=helpOf(txt);
     if(h&&quiet>SIL_HELP)return onHelp(h);
-    if(!h&&quiet>(T.think?SIL_THINK:SIL_END))return finishAnswer();
+    if(!h&&quiet>silMs())return finishAnswer();
   }
   if(now-T.started>MAX_ANS)return finishAnswer();
   paintLive();
@@ -534,7 +536,7 @@ function renderTalk(){
     ${running||ph==="needtap"
       ?`<div class="row">${ph==="needtap"?'<button class="btn primary" id="tap">🎤 タップして回答する</button>':""}<button class="btn ${ph==="listening"?"primary":""}" id="done" ${ph==="asking"?"disabled":""}>回答を終える →</button><button class="btn" id="rep">▶ もう一度聞く</button><button class="btn" id="slowB">▶ ゆっくり</button></div>`
       :`<div class="row"><button class="btn primary" id="resume">${fresh?"▶ 面接を始める":"▶ 再開する(この質問から)"}</button></div>`}
-    <div class="jp">答え終わって3秒黙ると次の質問に進みます。聞き取れない時は「Could you say that again?」「Could you speak more slowly?」と英語で言えば、面接官が繰り返します。</div>
+    <div class="jp">答え終わって${S.sil||5}秒黙ると次の質問に進みます(「回答を終える」ですぐ進むこともできます)。聞き取れない時は「Could you say that again?」「Could you speak more slowly?」と英語で言えば、面接官が繰り返します。</div>
     <div class="row"><button class="btn mini" id="peek">英文を見る(記録されます)</button>${running?'<button class="btn mini" id="pause">一時停止</button>':""}<button class="btn mini" id="quit">中断する</button></div>
     <div class="en" id="qText" ${m.peek[i]?"":"hidden"}>${esc(q.q)}</div>`;
   const on=(id,f)=>{const b=$(id);if(b)b.onclick=f;};
